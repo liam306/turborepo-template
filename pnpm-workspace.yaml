@@ -1,0 +1,16 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+allowBuilds:
+  '@parcel/watcher': true
+  '@scarf/scarf': false
+  '@sentry/cli': true
+  '@swc/core': true
+  core-js: false
+  esbuild: true
+  msgpackr-extract: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - expo-image-picker@57.0.20
+  - '@nestjs-modules/mailer@2.3.10'
+  - nodemailer@10.0.14

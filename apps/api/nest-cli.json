@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "builder": "webpack",
+    "webpackConfigPath": "webpack.config.js",
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true,
+          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
+        }
+      }
+    ],
+    "assets": ["i18n/**/*", "mail/templates/**/*"],
+    "watchAssets": true
+  }
+}

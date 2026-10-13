@@ -1,0 +1,57 @@
+{
+  "forbidden": "Bạn không có quyền thực hiện hành động này",
+  "deleted": "Đã xóa thành công",
+  "restored": "Đã khôi phục thành công",
+  "roles": {
+    "user": "Người dùng",
+    "admin": "Quản trị viên"
+  },
+  "errors": {
+    "unauthorized": "Yêu cầu đăng nhập để tiếp tục",
+    "invalidSession": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn",
+    "invalidCredentials": "Email hoặc mật khẩu không chính xác",
+    "userExists": "Tài khoản với email này đã tồn tại",
+    "internalError": "Đã xảy ra lỗi máy chủ nội bộ",
+    "invalidData": "Dữ liệu đầu vào không hợp lệ",
+    "userNotFound": "Không tìm thấy người dùng",
+    "invalidImageFile": "Tệp hình ảnh không hợp lệ hoặc không được hỗ trợ",
+    "imageSizeTooLarge": "Kích thước hình ảnh vượt quá giới hạn 5MB",
+    "passwordAlreadySet": "Tài khoản đã có mật khẩu. Vui lòng sử dụng tính năng đổi mật khẩu",
+    "passwordNotSet": "Tài khoản chưa thiết lập mật khẩu. Vui lòng đặt mật khẩu trước",
+    "incorrectCurrentPassword": "Mật khẩu hiện tại không chính xác",
+    "passwordMismatch": "Mật khẩu xác nhận không khớp",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
+    "passwordRequiredForDeletion": "Vui lòng nhập mật khẩu hiện tại để xác nhận xóa tài khoản",
+    "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại",
+    "userBanned": "Tài khoản của bạn đã bị khóa: {reason}",
+    "accountDeleted": "Tài khoản của bạn đã bị xóa hoặc vô hiệu hóa",
+    "sessionNotFound": "Không tìm thấy phiên làm việc hoặc đã bị thu hồi"
+  },
+  "users": {
+    "avatarUpdated": "Cập nhật ảnh đại diện thành công",
+    "profileUpdated": "Cập nhật thông tin thành công",
+    "passwordSet": "Đặt mật khẩu thành công. Bạn có thể đăng nhập bằng email và mật khẩu",
+    "passwordChanged": "Đổi mật khẩu thành công",
+    "userDataDeleted": "Tất cả dữ liệu của bạn đã được xóa thành công",
+    "accountDeleted": "Tài khoản của bạn đã được xóa vĩnh viễn",
+    "userRestored": "Khôi phục tài khoản thành công",
+    "sessionRevoked": "Đăng xuất khỏi thiết bị thành công",
+    "otherSessionsRevoked": "Đã đăng xuất khỏi tất cả các thiết bị khác thành công"
+  },
+  "mail": {
+    "securityTitle": "Xác minh bảo mật",
+    "otpSubject": "Mã xác minh OTP",
+    "otpGreeting": "Xin chào,",
+    "otpHeading": "Mã xác minh (OTP) của bạn là:",
+    "otpExpiry": "Mã này có hiệu lực trong 10 phút. Tuyệt đối không chia sẻ mã này với bất kỳ ai.",
+    "resetSubject": "Đặt lại mật khẩu của bạn",
+    "resetGreeting": "Xin chào,",
+    "resetBody": "Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản {email}.",
+    "resetButton": "Đặt lại mật khẩu",
+    "resetExpiry": "Liên kết này có hiệu lực trong 15 phút. Nếu bạn không gửi yêu cầu này, vui lòng bỏ qua email.",
+    "resetOtpSubject": "Mã OTP đặt lại mật khẩu",
+    "resetOtpHeading": "Mã OTP xác thực đặt lại mật khẩu của bạn là:",
+    "resetOtpExpiry": "Mã này có hiệu lực trong 5 phút. Tuyệt đối không chia sẻ mã này với bất kỳ ai.",
+    "footer": "Đội ngũ phát triển"
+  }
+}

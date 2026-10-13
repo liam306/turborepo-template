@@ -1,0 +1,297 @@
+name: Deploy Services to VPS
+concurrency:
+  group: vps-production
+  cancel-in-progress: false
+run-name: ${{ github.actor }} is deploying Services to VPS (Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+      - 'docker-compose.api.yml'
+      - 'docker-compose.web.yml'
+      - 'docker-compose.infra.yml'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target service to deploy'
+        required: true
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - api
+          - web
+      skip_build:
+        description: 'Skip the build stage'
+        required: false
+        type: boolean
+        default: false
+      skip_migrate:
+        description: 'Skip API database migration'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  APP_NAME: ${{ vars.APP_NAME || 'starter' }}
+  ENV_TYPE: prod
+
+jobs:
+  detect:
+    if: vars.ENABLE_VPS_DEPLOY == 'true'
+    name: Detect Changes
+    runs-on: self-hosted
+    outputs:
+      api: ${{ steps.targets.outputs.api }}
+      web: ${{ steps.targets.outputs.web }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Filter changed paths
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+              - 'docker-compose.api.yml'
+              - 'docker-compose.infra.yml'
+              - '.github/workflows/deploy.yml'
+            web:
+              - 'apps/web/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+              - 'docker-compose.web.yml'
+              - '.github/workflows/deploy.yml'
+
+      - name: Set target flags
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.target }}"
+            echo "api=$([ "$TARGET" = "all" ] || [ "$TARGET" = "api" ] && echo "true" || echo "false")" >> "$GITHUB_OUTPUT"
+            echo "web=$([ "$TARGET" = "all" ] || [ "$TARGET" = "web" ] && echo "true" || echo "false")" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=${{ steps.filter.outputs.api }}" >> "$GITHUB_OUTPUT"
+            echo "web=${{ steps.filter.outputs.web }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-api:
+    name: Build API Docker Image
+    runs-on: self-hosted
+    needs: detect
+    if: |
+      needs.detect.outputs.api == 'true' &&
+      (github.event_name != 'workflow_dispatch' || inputs.skip_build != true)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          name: ${{ env.APP_NAME }}-builder
+          keep-state: true
+          cleanup: false
+
+      - name: Build Docker Runner Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          load: true
+          tags: ${{ env.APP_NAME }}-api:${{ env.ENV_TYPE }}
+
+  deploy-api:
+    name: Deploy API to VPS
+    runs-on: self-hosted
+    needs: [detect, build-api]
+    if: |
+      always() &&
+      needs.detect.outputs.api == 'true' &&
+      (needs.build-api.result == 'success' || (needs.build-api.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.skip_build == true))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Write environment file and ensure infrastructure
+        env:
+          ENV_API: ${{ secrets.ENV_API_PROD }}
+        run: |
+          echo "$ENV_API" > .env.api
+          echo "ENV_TYPE=$ENV_TYPE" >> .env.api
+          echo "APP_NAME=$APP_NAME" >> .env.api
+
+          # Ensure required external Docker networks exist
+          docker network inspect "${APP_NAME}_network" >/dev/null 2>&1 || docker network create "${APP_NAME}_network"
+
+          # Auto-heal: Ensure DB container is running
+          if ! docker ps -q --filter "name=^${APP_NAME}-postgres-${ENV_TYPE}$" | grep -q .; then
+            echo "Database container is not running. Starting infrastructure services..."
+            docker compose --env-file .env.api -f docker-compose.infra.yml up -d
+          fi
+
+      - name: Run database migrations
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_migrate != true }}
+        run: |
+          set -a
+          [ -f .env.api ] && . ./.env.api
+          set +a
+
+          echo "Waiting for PostgreSQL database to start..."
+          for i in {1..30}; do
+            if docker exec "${APP_NAME}-postgres-${ENV_TYPE}" pg_isready -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app_db}" >/dev/null 2>&1; then
+              echo "Database is ready!"
+              break
+            fi
+            echo "Waiting for database to accept connections... ($i/30)"
+            sleep 1
+          done
+
+          # Run Drizzle migrations via runner container (runs concurrently with active API for zero downtime)
+          echo "Running database migrations..."
+          docker run --rm \
+            --network "${APP_NAME}_network" \
+            -e DATABASE_URL="postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${APP_NAME}-postgres-${ENV_TYPE}:5432/${POSTGRES_DB:-app_db}" \
+            "${APP_NAME}-api:$ENV_TYPE" \
+            node scripts/migrate.mjs
+
+      - name: Start API application
+        run: |
+          echo "Starting NestJS application..."
+          docker compose --env-file .env.api -f docker-compose.api.yml up -d --remove-orphans api
+
+      - name: Verify API Health
+        run: |
+          echo "Waiting for API to become ready..."
+          for i in {1..20}; do
+            if docker exec "${APP_NAME}-api-${ENV_TYPE}" curl -sf http://localhost:4000/v1/health/ready | grep -q '"status":"ok"'; then
+              echo "API is healthy and serving traffic!"
+              break
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "API failed healthcheck!"
+              docker logs --tail 100 "${APP_NAME}-api-${ENV_TYPE}"
+              exit 1
+            fi
+            echo "Waiting for API startup... ($i/20)"
+            sleep 2
+          done
+
+      - name: Clean up temporary images
+        run: |
+          # Clean up dangling images to free VPS disk space
+          docker image prune -f
+
+  build-web:
+    name: Build Web Docker Image
+    runs-on: self-hosted
+    needs: [detect, deploy-api]
+    if: |
+      always() &&
+      needs.detect.outputs.web == 'true' &&
+      (needs.deploy-api.result == 'success' || needs.detect.outputs.api == 'false') &&
+      (github.event_name != 'workflow_dispatch' || inputs.skip_build != true)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          name: ${{ env.APP_NAME }}-builder
+          keep-state: true
+          cleanup: false
+
+      - name: Prepare Web Build Arguments
+        id: args
+        env:
+          ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
+        run: |
+          {
+            echo "build_args<<EOF"
+            echo "$ENV_WEB" | grep -E '^[A-Za-z0-9_]+=' || true
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          load: true
+          tags: ${{ env.APP_NAME }}-web:${{ env.ENV_TYPE }}
+          build-args: ${{ steps.args.outputs.build_args }}
+
+  deploy-web:
+    name: Deploy Web to VPS
+    runs-on: self-hosted
+    needs: [detect, build-web, deploy-api]
+    if: |
+      always() &&
+      needs.detect.outputs.web == 'true' &&
+      (needs.deploy-api.result == 'success' || needs.detect.outputs.api == 'false') &&
+      (needs.build-web.result == 'success' || (needs.build-web.result == 'skipped' && github.event_name == 'workflow_dispatch' && inputs.skip_build == true))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Create environment files and ensure networks
+        env:
+          ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
+        run: |
+          echo "$ENV_WEB" > .env.web
+          echo "ENV_TYPE=$ENV_TYPE" >> .env.web
+          echo "APP_NAME=$APP_NAME" >> .env.web
+
+          # Ensure required external Docker networks exist
+          docker network inspect "${APP_NAME}_network" >/dev/null 2>&1 || docker network create "${APP_NAME}_network"
+
+      - name: Run Docker Compose
+        run: |
+          docker compose --env-file .env.web -f docker-compose.web.yml up -d --remove-orphans web
+
+      - name: Verify Web Health
+        run: |
+          echo "Waiting for Web service to become ready..."
+          for i in {1..20}; do
+            if docker exec "${APP_NAME}-web-${ENV_TYPE}" curl -sf http://localhost:3000/api/health | grep -q '"status":"ok"'; then
+              echo "Web service is healthy!"
+              break
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "Web service failed healthcheck!"
+              docker logs --tail 100 "${APP_NAME}-web-${ENV_TYPE}"
+              exit 1
+            fi
+            echo "Waiting for Web startup... ($i/20)"
+            sleep 2
+          done
+
+      - name: Clean up dangling images
+        run: |
+          docker image prune -f

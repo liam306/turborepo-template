@@ -1,0 +1,88 @@
+# ============================================================================
+# Docker Build Ignore Configuration
+# ============================================================================
+
+# Git & CI/CD
+.git
+.gitignore
+.gitattributes
+.github
+
+# Environment & Secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+
+# Dependencies & Package Managers
+node_modules
+**/node_modules
+.pnpm-store
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.log*
+
+# Build Outputs & Caches
+.next
+**/.next
+out
+.turbo
+**/.turbo
+dist
+**/dist
+build
+**/build
+web-build
+**/web-build
+coverage
+**/coverage
+.nyc_output
+**/.nyc_output
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Workspaces & Directories Excluded from VPS Images
+apps/mobile
+docs
+
+# Docker & Infrastructure Configs
+docker-compose*.yml
+
+# AI Assistants, Agent Skills & IDEs
+.agents
+.claude
+.opencode
+opencode.json
+skills-lock.json
+agent
+.vscode
+.idea
+*.swp
+*.swo
+
+# Tests & Specs
+test
+**/*.spec.ts
+**/*.test.ts
+__tests__
+
+# System & Temp Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+*.log
+*.tmp
+*.bak
+
+# Documentation
+*.md
+LICENSE
+

@@ -1,0 +1,47 @@
+name: ${APP_NAME:-starter}-api-${ENV_TYPE:-prod}
+
+services:
+  api:
+    image: ${APP_NAME:-starter}-api:${ENV_TYPE:-prod}
+    container_name: ${APP_NAME:-starter}-api-${ENV_TYPE:-prod}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - path: .env.api
+        required: true
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${APP_NAME:-starter}-postgres-${ENV_TYPE:-prod}:5432/${POSTGRES_DB:-app_db}
+      - REDIS_HOST=${APP_NAME:-starter}-redis-${ENV_TYPE:-prod}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf http://localhost:4000/v1/health/ready || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 256M
+    networks:
+      - repo_network
+
+networks:
+  repo_network:
+    name: ${APP_NAME:-starter}_network
+    external: true

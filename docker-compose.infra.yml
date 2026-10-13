@@ -1,0 +1,155 @@
+name: ${APP_NAME:-starter}-infra-${ENV_TYPE:-prod}
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: ${APP_NAME:-starter}-postgres-${ENV_TYPE:-prod}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+    volumes:
+      - repo_postgres_prod:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app_db}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 256M
+    networks:
+      - repo_network
+
+  redis:
+    image: redis:8.0
+    container_name: ${APP_NAME:-starter}-redis-${ENV_TYPE:-prod}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: >
+      sh -c '
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          redis-server --requirepass "$${REDIS_PASSWORD}"
+        else
+          redis-server
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - repo_redis_prod:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep PONG; else redis-cli ping | grep PONG; fi',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 64M
+    networks:
+      - repo_network
+
+  dozzle:
+    profiles: ['monitoring']
+    image: amir20/dozzle:latest
+    container_name: ${APP_NAME:-starter}-dozzle-${ENV_TYPE:-prod}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_BASE=/
+      - DOZZLE_LEVEL=info
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+    networks:
+      - repo_network
+
+  netdata:
+    profiles: ['monitoring']
+    image: netdata/netdata:latest
+    container_name: ${APP_NAME:-starter}-netdata-${ENV_TYPE:-prod}
+    restart: unless-stopped
+    hostname: ${APP_NAME:-starter}-vps
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+        reservations:
+          memory: 64M
+    networks:
+      - repo_network
+
+volumes:
+  repo_postgres_prod:
+    name: ${APP_NAME:-starter}_postgres_${ENV_TYPE:-prod}
+  repo_redis_prod:
+    name: ${APP_NAME:-starter}_redis_${ENV_TYPE:-prod}
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+
+networks:
+  repo_network:
+    name: ${APP_NAME:-starter}_network
+    external: true

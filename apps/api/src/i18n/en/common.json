@@ -1,0 +1,57 @@
+{
+  "forbidden": "You do not have permission to perform this action",
+  "deleted": "Deleted successfully",
+  "restored": "Restored successfully",
+  "roles": {
+    "user": "User",
+    "admin": "Admin"
+  },
+  "errors": {
+    "unauthorized": "Authentication required",
+    "invalidSession": "Invalid or expired session",
+    "invalidCredentials": "Email or password is incorrect",
+    "userExists": "User with this email already exists",
+    "internalError": "Internal server error occurred",
+    "invalidData": "Invalid input data",
+    "userNotFound": "User not found",
+    "invalidImageFile": "Invalid or unsupported image file",
+    "imageSizeTooLarge": "Image size exceeds 5MB limit",
+    "passwordAlreadySet": "Account already has a password. Please use change password instead",
+    "passwordNotSet": "Account does not have a password set. Please set a password first",
+    "incorrectCurrentPassword": "Current password is incorrect",
+    "passwordMismatch": "Password confirmation does not match",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordRequiredForDeletion": "Please provide your current password to confirm account deletion",
+    "sessionExpired": "Session has expired. Please log in again",
+    "userBanned": "Your account has been suspended: {reason}",
+    "accountDeleted": "Your account has been deleted or deactivated",
+    "sessionNotFound": "Session not found or already revoked"
+  },
+  "users": {
+    "avatarUpdated": "Avatar updated successfully",
+    "profileUpdated": "Profile updated successfully",
+    "passwordSet": "Password set successfully. You can now log in using email and password",
+    "passwordChanged": "Password changed successfully",
+    "userDataDeleted": "All your data has been deleted successfully",
+    "accountDeleted": "Your account has been permanently deleted",
+    "userRestored": "User account restored successfully",
+    "sessionRevoked": "Logged out of device successfully",
+    "otherSessionsRevoked": "All other sessions revoked successfully"
+  },
+  "mail": {
+    "securityTitle": "Security Verification",
+    "otpSubject": "Verification OTP Code",
+    "otpGreeting": "Hello,",
+    "otpHeading": "Your verification code (OTP) is:",
+    "otpExpiry": "This code is valid for 10 minutes. Do not share this code with anyone.",
+    "resetSubject": "Reset your password",
+    "resetGreeting": "Hello,",
+    "resetBody": "We received a request to reset the password for {email}.",
+    "resetButton": "Reset Password",
+    "resetExpiry": "This link is valid for 15 minutes. If you did not make this request, please ignore this email.",
+    "resetOtpSubject": "Password Reset OTP Code",
+    "resetOtpHeading": "Your password reset verification code (OTP) is:",
+    "resetOtpExpiry": "This code is valid for 5 minutes. Do not share this code with anyone.",
+    "footer": "Application Team"
+  }
+}

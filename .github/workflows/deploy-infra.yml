@@ -1,0 +1,91 @@
+name: Deploy Infrastructure to VPS
+concurrency:
+  group: vps-production
+  cancel-in-progress: false
+run-name: ${{ github.actor }} is deploying Infrastructure to VPS (Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker-compose.infra.yml'
+      - '.github/workflows/deploy-infra.yml'
+  workflow_dispatch:
+
+env:
+  APP_NAME: ${{ vars.APP_NAME || 'starter' }}
+  ENV_TYPE: prod
+
+jobs:
+  deploy:
+    if: vars.ENABLE_VPS_DEPLOY == 'true'
+    name: Deploy Infrastructure to VPS
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Ensure Docker networks exist
+        run: |
+          docker network inspect "${APP_NAME}_network" >/dev/null 2>&1 || docker network create "${APP_NAME}_network"
+
+      - name: Write environment file and start infrastructure
+        env:
+          ENV_API: ${{ secrets.ENV_API_PROD }}
+        run: |
+          echo "$ENV_API" > .env.api
+
+          # Append container & volume names for interpolation
+          echo "ENV_TYPE=$ENV_TYPE" >> .env.api
+          echo "APP_NAME=$APP_NAME" >> .env.api
+
+          echo "Starting Postgres and Redis..."
+          docker compose --env-file .env.api -f docker-compose.infra.yml up -d --remove-orphans
+
+      - name: Verify Infrastructure Health
+        run: |
+          set -a
+          [ -f .env.api ] && . ./.env.api
+          set +a
+
+          echo "Waiting for PostgreSQL database to start..."
+          for i in {1..30}; do
+            if docker exec "${APP_NAME}-postgres-${ENV_TYPE}" pg_isready -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-app_db}" >/dev/null 2>&1; then
+              echo "Database is ready!"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Database failed readiness check!"
+              docker logs --tail 50 "${APP_NAME}-postgres-${ENV_TYPE}"
+              exit 1
+            fi
+            echo "Waiting for database to accept connections... ($i/30)"
+            sleep 1
+          done
+
+          echo "Waiting for Redis to start..."
+          for i in {1..15}; do
+            if [ -n "$REDIS_PASSWORD" ]; then
+              PING_RES=$(docker exec "${APP_NAME}-redis-${ENV_TYPE}" redis-cli --no-auth-warning -a "$REDIS_PASSWORD" ping 2>/dev/null || true)
+            else
+              PING_RES=$(docker exec "${APP_NAME}-redis-${ENV_TYPE}" redis-cli ping 2>/dev/null || true)
+            fi
+            if [ "$PING_RES" = "PONG" ]; then
+              echo "Redis is ready!"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "Redis failed readiness check!"
+              docker logs --tail 50 "${APP_NAME}-redis-${ENV_TYPE}"
+              exit 1
+            fi
+            echo "Waiting for Redis to accept connections... ($i/15)"
+            sleep 1
+          done
+
+      - name: Clean up dangling images
+        run: |
+          docker image prune -f

@@ -1,0 +1,75 @@
+name: CI
+run-name: ${{ github.actor }} is validating (${{ github.ref_name }})
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Codebase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Environment
+        run: cp .env.example .env
+
+      - name: Code Formatting Check
+        run: pnpm format:check
+
+      - name: Scanner Scripts Lint & Typecheck
+        run: pnpm lint:scripts && pnpm typecheck:scripts
+
+      - name: Scanner Unit Tests
+        run: pnpm test:scripts
+
+      - name: i18n Consistency Check
+        run: pnpm check:i18n
+
+      - name: Generate Hardcoded Text Audit Report
+        run: node scripts/check-hardcoded-text.mjs --format json > hardcoded-audit-report.json || true
+
+      - name: Upload Hardcoded Text Audit Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hardcoded-audit-report
+          path: hardcoded-audit-report.json
+          if-no-files-found: ignore
+
+      - name: Hardcoded Text Audit
+        run: pnpm check:hardcoded
+
+      - name: Architecture & Codebase Rules Check
+        run: pnpm check:rules
+
+      - name: Lint All Workspaces
+        run: pnpm lint
+
+      - name: Typecheck All Workspaces
+        run: pnpm typecheck
+
+      - name: Run All Tests
+        run: pnpm test
+
+      - name: Build All Workspaces
+        run: pnpm build

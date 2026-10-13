@@ -1,0 +1,115 @@
+name: ${APP_NAME:-starter}-local
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app_db}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - repo_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app_db}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - repo-network
+
+  redis:
+    image: redis:8.0
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          redis-server --requirepass "$${REDIS_PASSWORD}"
+        else
+          redis-server
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - repo_redis_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep PONG; else redis-cli ping | grep PONG; fi',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - repo-network
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    ports:
+      - '${SEAWEEDFS_S3_PORT:-8333}:8333'
+      - '${SEAWEEDFS_FILER_PORT:-8888}:8888'
+    environment:
+      STORAGE_S3_ACCESS_KEY_ID: ${STORAGE_S3_ACCESS_KEY_ID:-minioadmin}
+      STORAGE_S3_SECRET_ACCESS_KEY: ${STORAGE_S3_SECRET_ACCESS_KEY:-minioadmin}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-app-storage}
+    entrypoint: >
+      /bin/sh -c "
+      mkdir -p /etc/seaweedfs &&
+      printf '{\"identities\":[{\"name\":\"admin\",\"credentials\":[{\"accessKey\":\"%s\",\"secretKey\":\"%s\"}],\"actions\":[\"Admin\",\"Read\",\"List\",\"Tagging\",\"Write\"]},{\"name\":\"anonymous\",\"actions\":[\"Read\",\"List\"]}]}' \"$$STORAGE_S3_ACCESS_KEY_ID\" \"$$STORAGE_S3_SECRET_ACCESS_KEY\" > /etc/seaweedfs/s3.json &&
+      (
+        until wget -q -O - http://127.0.0.1:8888/ >/dev/null 2>&1; do sleep 1; done
+        echo \"s3.bucket.create -name $$STORAGE_S3_BUCKET\" | weed shell -filer=127.0.0.1:8888 >/dev/null 2>&1 || true
+      ) &
+      exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+      "
+    volumes:
+      - repo_seaweedfs_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O - http://127.0.0.1:8888/ >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - repo-network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_UI_AUTH: ${MAILPIT_UI_USER:-admin}:${MAILPIT_UI_PASS:-admin@mailpit}
+      MP_SMTP_AUTH: ${MAIL_USER:-mailpit}:${MAIL_PASS:-mailpit}
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:8025/livez']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - repo-network
+
+volumes:
+  repo_postgres_data: {}
+  repo_redis_data: {}
+  repo_seaweedfs_data: {}
+
+networks:
+  repo-network:
+    driver: bridge

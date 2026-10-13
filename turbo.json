@@ -1,0 +1,75 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env*"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "dependsOn": ["^build"],
+      "env": ["NODE_ENV", "PORT", "SENTRY_AUTH_TOKEN"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": ["NODE_ENV"]
+    },
+    "dev": {
+      "passThroughEnv": [
+        "NODE_ENV",
+        "PORT",
+        "API_PORT",
+        "WEB_PORT",
+        "DATABASE_URL",
+        "POSTGRES_*",
+        "REDIS_*",
+        "BETTER_AUTH_*",
+        "AUTH_TRUSTED_ORIGINS",
+        "COOKIE_DOMAIN",
+        "CORS_ORIGINS",
+        "DOCS_*",
+        "ENABLE_DOCS",
+        "ADMIN_*",
+        "MAIL_*",
+        "STORAGE_*",
+        "GOOGLE_*",
+        "APPLE_*",
+        "SENTRY_*",
+        "APP_ENV",
+        "EAS_BUILD_PROFILE",
+        "REACT_NATIVE_PACKAGER_HOSTNAME"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "passThroughEnv": [
+        "NODE_ENV",
+        "PORT",
+        "API_PORT",
+        "WEB_PORT",
+        "DATABASE_URL",
+        "POSTGRES_*",
+        "REDIS_*",
+        "BETTER_AUTH_*",
+        "AUTH_TRUSTED_ORIGINS",
+        "COOKIE_DOMAIN",
+        "CORS_ORIGINS",
+        "DOCS_*",
+        "ENABLE_DOCS",
+        "ADMIN_*",
+        "MAIL_*",
+        "STORAGE_*",
+        "GOOGLE_*",
+        "APPLE_*",
+        "SENTRY_*"
+      ],
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

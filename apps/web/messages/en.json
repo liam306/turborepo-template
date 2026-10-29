@@ -182,6 +182,7 @@
     "tabDanger": "Danger Zone",
     "sessionsTitle": "Devices & Active Sessions",
     "sessionsDesc": "Manage and sign out of devices currently logged in to your account.",
+    "searchSessions": "Search by browser, device or IP...",
     "currentDevice": "This device",
     "otherDevices": "Other devices",
     "revokeSession": "Sign out",
@@ -210,5 +211,17 @@
     "title": "Page Not Found",
     "description": "Sorry, the page you are looking for does not exist or has been moved.",
     "goHome": "Back to Home"
+  },
+  "pagination": {
+    "page": "Page",
+    "of": "of",
+    "perPage": "Per page",
+    "showing": "Showing {start} to {end} of {total} results",
+    "prev": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "noResults": "No results found",
+    "itemsPerPage": "{count} / page"
   }
 }

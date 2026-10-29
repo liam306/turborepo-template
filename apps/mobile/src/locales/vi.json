@@ -23,6 +23,7 @@
     "ok": "Đồng ý",
     "notice": "Thông báo",
     "progress": "Tiến độ",
+    "search": "Tìm kiếm...",
     "user": "Người dùng",
     "themeSystem": "Hệ thống",
     "themeLight": "Sáng",
@@ -148,5 +149,17 @@
     "deleteAccountTitle": "Xóa Tài Khoản",
     "deleteAccountDesc": "Vô hiệu hóa tài khoản và đăng xuất mọi thiết bị. Hồ sơ được giữ lại; quản trị viên có thể khôi phục.",
     "errorOccurred": "Đã xảy ra lỗi, vui lòng thử lại sau"
+  },
+  "pagination": {
+    "page": "Trang",
+    "of": "trên",
+    "perPage": "Số dòng",
+    "showing": "Hiển thị {{start}} - {{end}} trên tổng {{total}} kết quả",
+    "prev": "Trước",
+    "next": "Tiếp",
+    "first": "Đầu tiên",
+    "last": "Cuối cùng",
+    "noResults": "Không có dữ liệu",
+    "itemsPerPage": "{{count}} / trang"
   }
 }

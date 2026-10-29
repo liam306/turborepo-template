@@ -23,6 +23,7 @@
     "ok": "OK",
     "notice": "Notice",
     "progress": "Progress",
+    "search": "Search...",
     "user": "User",
     "themeSystem": "System",
     "themeLight": "Light",
@@ -148,5 +149,17 @@
     "deleteAccountTitle": "Delete Account",
     "deleteAccountDesc": "Deactivate your account and sign out all devices. Records are retained; an administrator can restore access.",
     "errorOccurred": "An error occurred, please try again"
+  },
+  "pagination": {
+    "page": "Page",
+    "of": "of",
+    "perPage": "Per page",
+    "showing": "Showing {{start}} to {{end}} of {{total}} results",
+    "prev": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "noResults": "No results found",
+    "itemsPerPage": "{{count}} / page"
   }
 }

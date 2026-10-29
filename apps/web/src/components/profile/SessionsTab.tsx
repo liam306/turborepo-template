@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ShieldCheck, LogOut, Loader2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { paginateItems } from '@repo/utils';
 import {
   useUserSessions,
   useRevokeSession,
@@ -10,6 +11,8 @@ import {
 } from '@/hooks/queries';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DebouncedSearchInput } from '@/components/ui/debounced-search-input';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SessionItem } from './SessionItem';
 
 interface SessionsTabProps {
@@ -25,9 +28,39 @@ export function SessionsTab({ onSuccessMsg, onErrorMsg }: SessionsTabProps) {
   const revokeSessionMutation = useRevokeSession();
   const revokeOtherSessionsMutation = useRevokeOtherSessions();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
+
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [sessionToRevoke, setSessionToRevoke] = useState<string | null>(null);
   const [showRevokeOthersConfirm, setShowRevokeOthersConfirm] = useState(false);
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const q = searchQuery.toLowerCase().trim();
+    return sessions.filter((s) => {
+      const matchDevice = s.deviceType?.toLowerCase().includes(q);
+      const matchBrowser = s.browser?.toLowerCase().includes(q);
+      const matchOs = s.os?.toLowerCase().includes(q);
+      const matchIp = s.ipAddress?.toLowerCase().includes(q);
+      return matchDevice || matchBrowser || matchOs || matchIp;
+    });
+  }, [sessions, searchQuery]);
+
+  const { data: pagedSessions, meta } = useMemo(() => {
+    return paginateItems(filteredSessions, page, limit);
+  }, [filteredSessions, page, limit]);
+
+  const handleSearch = (q: string) => {
+    setSearchQuery(q);
+    setPage(1);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+  };
 
   const handleConfirmRevokeSingle = () => {
     if (!sessionToRevoke) return;
@@ -108,15 +141,38 @@ export function SessionsTab({ onSuccessMsg, onErrorMsg }: SessionsTabProps) {
           {t('noSessions')}
         </div>
       ) : (
-        <div className="space-y-2.5">
-          {sessions.map((session) => (
-            <SessionItem
-              key={session.id}
-              session={session}
-              onRevoke={(id) => setSessionToRevoke(id)}
-              isRevoking={revokingId === session.id}
+        <div className="space-y-3">
+          <DebouncedSearchInput
+            onSearch={handleSearch}
+            placeholder={t('searchSessions')}
+            className="h-8"
+          />
+
+          {pagedSessions.length === 0 ? (
+            <div className="py-8 text-center text-xs text-muted-foreground">
+              {common('noData')}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {pagedSessions.map((session) => (
+                <SessionItem
+                  key={session.id}
+                  session={session}
+                  onRevoke={(id) => setSessionToRevoke(id)}
+                  isRevoking={revokingId === session.id}
+                />
+              ))}
+            </div>
+          )}
+
+          {filteredSessions.length > 0 ? (
+            <PaginationControls
+              meta={meta}
+              onPageChange={setPage}
+              onLimitChange={handleLimitChange}
+              pageSizeOptions={[5, 10, 20]}
             />
-          ))}
+          ) : null}
         </div>
       )}
 

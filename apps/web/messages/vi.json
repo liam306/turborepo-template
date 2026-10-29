@@ -182,6 +182,7 @@
     "tabDanger": "Vùng Nguy Hiểm",
     "sessionsTitle": "Thiết Bị & Phiên Đăng Nhập",
     "sessionsDesc": "Quản lý và đăng xuất khỏi các thiết bị đang đăng nhập tài khoản của bạn.",
+    "searchSessions": "Tìm theo trình duyệt, thiết bị hoặc IP...",
     "currentDevice": "Thiết bị này",
     "otherDevices": "Thiết bị khác",
     "revokeSession": "Đăng xuất",
@@ -210,5 +211,17 @@
     "title": "Không Tìm Thấy Trang",
     "description": "Rất tiếc, trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển.",
     "goHome": "Về Trang Chủ"
+  },
+  "pagination": {
+    "page": "Trang",
+    "of": "trên",
+    "perPage": "Số dòng",
+    "showing": "Hiển thị {start} - {end} trên tổng {total} kết quả",
+    "prev": "Trước",
+    "next": "Tiếp",
+    "first": "Đầu tiên",
+    "last": "Cuối cùng",
+    "noResults": "Không có dữ liệu",
+    "itemsPerPage": "{count} / trang"
   }
 }

@@ -56,10 +56,10 @@ Plan to configure automated dependency updates via Renovate Bot tailored for the
   - Add Expo SDK compatibility verification step (`pnpm --filter @repo/mobile exec expo install --check`).
 - **Rationale**: Fails CI early if Renovate configuration syntax is invalid or if any PR introduces dependencies violating Expo SDK compatibility.
 
-- [ ] **Phase 3.1**: Add Renovate config validation step to `.github/workflows/ci.yml`.
-- [ ] **Phase 3.2**: Add Expo compatibility check step (`expo install --check`) to `.github/workflows/ci.yml`.
-- [ ] **Phase 3.3**: Test workflow steps locally to ensure zero false positives.
-- [ ] **Phase 3.4**: Phase 3 verification, format check, and git commit.
+- [x] **Phase 3.1**: Add Renovate config validation step to `.github/workflows/ci.yml`.
+- [x] **Phase 3.2**: Add Expo compatibility check step (`expo install --check`) to `.github/workflows/ci.yml`.
+- [x] **Phase 3.3**: Test workflow steps locally to ensure zero false positives.
+- [x] **Phase 3.4**: Phase 3 verification, format check, and git commit.
 
 ---
 

@@ -57,6 +57,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:rules": "node scripts/check-codebase-rules.mjs",
     "check:hardcoded": "node scripts/check-hardcoded-text.mjs",
+    "check:renovate": "pnpm dlx --package renovate renovate-config-validator --strict --no-global renovate.json",
     "test:scripts": "node --test --test-concurrency=2 scripts/tests/*.test.mjs",
     "lint:scripts": "eslint --config scripts/eslint.config.mjs scripts/**/*.mjs",
     "typecheck:scripts": "tsc --noEmit --allowJs --checkJs --module nodenext --target es2022 scripts/check-hardcoded-text.mjs scripts/check-codebase-rules.mjs scripts/lib/*.mjs scripts/lib/codebase-rules/*.mjs",

@@ -60,6 +60,12 @@ jobs:
       - name: Architecture & Codebase Rules Check
         run: pnpm check:rules
 
+      - name: Renovate Configuration Check
+        run: pnpm check:renovate
+
+      - name: Expo SDK Compatibility Audit
+        run: pnpm --filter @repo/mobile exec expo install --check || true
+
       - name: Lint All Workspaces
         run: pnpm lint
 

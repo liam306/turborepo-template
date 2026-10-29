@@ -1,11 +1,21 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
+import sharp from 'sharp';
 import { UsersService } from './users.service';
 import { DatabaseService } from '../database/database.service';
 import { StorageService } from '../storage/storage.service';
 import { AuthService } from '../auth/auth.service';
 import { usersRepository, type UserRecord } from '@repo/database';
+
+jest.mock('sharp', () => {
+  return jest.fn().mockImplementation(() => ({
+    rotate: jest.fn().mockReturnThis(),
+    resize: jest.fn().mockReturnThis(),
+    webp: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-webp')),
+  }));
+});
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -185,6 +195,118 @@ describe('UsersService', () => {
           newPassword: 'StrongPassword123',
           userId: 'u-1',
         },
+      });
+      expect(res.message).toBeDefined();
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    it('throws BadRequestException if file or buffer is missing', async () => {
+      await expect(service.uploadAvatar('u-1', null as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('uploads optimized buffer and updates user image', async () => {
+      const file = {
+        buffer: Buffer.from('raw-image'),
+        mimetype: 'image/jpeg',
+      } as Express.Multer.File;
+
+      const updateSpy = jest
+        .spyOn(usersRepository, 'update')
+        .mockResolvedValue(null as any);
+
+      const result = await service.uploadAvatar('u-1', file, 'vi');
+
+      expect(mockStorageService.upload).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledWith(
+        mockDb,
+        'u-1',
+        expect.objectContaining({
+          image: expect.stringContaining(
+            'https://cdn.example.com/avatars/user-1/123.webp',
+          ),
+        }),
+      );
+      expect(result.avatarUrl).toBe(
+        'https://cdn.example.com/avatars/user-1/123.webp',
+      );
+      expect(result.message).toBeDefined();
+    });
+
+    it('throws BadRequestException when sharp fails processing', async () => {
+      (sharp as unknown as jest.Mock).mockImplementationOnce(() => ({
+        rotate: jest.fn().mockReturnThis(),
+        resize: jest.fn().mockReturnThis(),
+        webp: jest.fn().mockReturnThis(),
+        toBuffer: jest.fn().mockRejectedValue(new Error('Sharp error')),
+      }));
+
+      const file = {
+        buffer: Buffer.from('corrupt'),
+      } as Express.Multer.File;
+
+      await expect(service.uploadAvatar('u-1', file)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('changePassword', () => {
+    it('throws BadRequestException when user has no password set', async () => {
+      jest.spyOn(service, 'getProfile').mockResolvedValue({
+        id: 'u-1',
+        hasPassword: false,
+      } as any);
+
+      await expect(
+        service.changePassword(
+          'u-1',
+          { currentPassword: 'OldPassword1', newPassword: 'NewPassword1' },
+          {},
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when auth provider rejects current password', async () => {
+      jest.spyOn(service, 'getProfile').mockResolvedValue({
+        id: 'u-1',
+        hasPassword: true,
+      } as any);
+      mockAuthService.auth.api.changePassword.mockRejectedValueOnce(
+        new Error('Invalid password'),
+      );
+
+      await expect(
+        service.changePassword(
+          'u-1',
+          { currentPassword: 'WrongPassword', newPassword: 'NewPassword1' },
+          {},
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('successfully changes password', async () => {
+      jest.spyOn(service, 'getProfile').mockResolvedValue({
+        id: 'u-1',
+        hasPassword: true,
+      } as any);
+      mockAuthService.auth.api.changePassword.mockResolvedValueOnce({});
+
+      const res = await service.changePassword(
+        'u-1',
+        { currentPassword: 'CorrectPassword1', newPassword: 'NewPassword1' },
+        {},
+      );
+
+      expect(mockAuthService.auth.api.changePassword).toHaveBeenCalledWith({
+        body: {
+          currentPassword: 'CorrectPassword1',
+          newPassword: 'NewPassword1',
+          revokeOtherSessions: true,
+        },
+        headers: {},
       });
       expect(res.message).toBeDefined();
     });

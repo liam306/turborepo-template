@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "node scripts/run.mjs start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=2",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

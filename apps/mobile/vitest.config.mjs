@@ -7,6 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    maxWorkers: 2,
   },
   resolve: {
     alias: {

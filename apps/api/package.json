@@ -11,9 +11,9 @@
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
-    "test": "jest --maxWorkers=4",
+    "test": "jest --maxWorkers=2",
     "test:watch": "jest --watch --maxWorkers=2",
-    "test:cov": "jest --coverage --maxWorkers=4"
+    "test:cov": "jest --coverage --maxWorkers=2"
   },
   "jest": {
     "moduleFileExtensions": [

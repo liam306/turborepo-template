@@ -65,7 +65,8 @@ export function calculateDaysBetween(
   try {
     const start = parseISO(startDateISO);
     const end = parseISO(endDateISO);
-    return Math.max(0, differenceInCalendarDays(end, start));
+    const diff = differenceInCalendarDays(end, start);
+    return Number.isNaN(diff) ? 0 : Math.max(0, diff);
   } catch {
     return 0;
   }

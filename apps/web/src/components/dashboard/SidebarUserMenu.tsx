@@ -14,8 +14,9 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
 import { useUserProfile } from '@/hooks/queries/useUserQuery';
+import { useSignOut } from '@/hooks/queries';
 import { useTheme } from '@/context/ThemeContext';
 import { useIsMounted } from '@/hooks/useIsMounted';
 import { ProfileModal } from '@/components/ProfileModal';
@@ -52,6 +53,7 @@ export function SidebarUserMenu({ isCollapsed }: SidebarUserMenuProps) {
   const { data: profile } = useUserProfile(Boolean(session?.user));
   const { theme, setTheme } = useTheme();
   const mounted = useIsMounted();
+  const signOutMutation = useSignOut();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -247,8 +249,9 @@ export function SidebarUserMenu({ isCollapsed }: SidebarUserMenuProps) {
 
           {/* Logout */}
           <DropdownMenuItem
+            disabled={signOutMutation.isPending}
             onClick={async () => {
-              await signOut();
+              await signOutMutation.mutateAsync();
               // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = '/login';
             }}

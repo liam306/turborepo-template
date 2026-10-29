@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,7 @@ import { useTranslation } from 'react-i18next';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import Svg, { Path } from 'react-native-svg';
-import { signInGoogle } from '@/services/social-auth.service';
-import { useSignInSocial } from '@/hooks/queries';
+import { useSignInSocial, useSignInGoogle } from '@/hooks/queries';
 import { cn } from '@/lib/utils';
 import type { IAuthResponse } from '@repo/types';
 
@@ -29,18 +28,17 @@ export function SocialAuthButtons({
   onError,
 }: ISocialAuthButtonsProps) {
   const { t } = useTranslation();
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const { mutateAsync: signInGoogleMutation, isPending: loadingGoogle } =
+    useSignInGoogle();
   const { mutateAsync: signInSocial, isPending: loadingApple } =
     useSignInSocial();
 
   const handleGoogleAuth = async () => {
-    setLoadingGoogle(true);
     try {
-      onSuccess(await signInGoogle());
+      const data = await signInGoogleMutation();
+      onSuccess(data);
     } catch (err: unknown) {
       onError(err instanceof Error ? err.message : t('auth.authFailed'));
-    } finally {
-      setLoadingGoogle(false);
     }
   };
 

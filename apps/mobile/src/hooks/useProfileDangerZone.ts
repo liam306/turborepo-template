@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '@/stores/useUserStore';
 import { clearAllLocalUserData, clearEntireLocalApp } from '@/stores/clearData';
-import { useDeleteUserData, useDeleteAccount } from '@/hooks/queries';
+import {
+  useDeleteUserData,
+  useDeleteAccount,
+  useSignOut,
+} from '@/hooks/queries';
 
 export function useProfileDangerZone() {
   const { t } = useTranslation();
@@ -16,6 +20,7 @@ export function useProfileDangerZone() {
 
   const deleteDataMutation = useDeleteUserData();
   const deleteAccountMutation = useDeleteAccount();
+  const signOutMutation = useSignOut();
 
   const handleDeleteData = () => {
     Alert.alert(
@@ -120,6 +125,11 @@ export function useProfileDangerZone() {
         text: t('common.ok'),
         style: 'destructive',
         onPress: async () => {
+          try {
+            await signOutMutation.mutateAsync();
+          } catch {
+            // Ignore network errors on logout
+          }
           await clearEntireLocalApp();
           logout();
           router.replace('/');

@@ -34,37 +34,51 @@ function VerifyEmailContent() {
   const [email, setEmail] = useState(queryEmail);
   const [emailError, setEmailError] = useState('');
   const [otp, setOtp] = useState('');
-  const [status, setStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >(() => (token ? 'loading' : 'idle'));
-  const [errorMsg, setErrorMsg] = useState('');
   const [countdown, setCountdown] = useState(60);
 
   const canResend = countdown <= 0;
 
-  const { mutate: verifyToken } = useVerifyEmail();
-  const { mutateAsync: verifyOtp, isPending: verifyingOtp } =
-    useVerifyEmailOtp();
-  const { mutateAsync: sendOtp, isPending: resendingOtp } =
-    useSendVerificationOtp();
+  const verifyTokenMutation = useVerifyEmail();
+  const verifyOtpMutation = useVerifyEmailOtp();
+  const sendOtpMutation = useSendVerificationOtp();
+  const { mutate: verifyToken } = verifyTokenMutation;
+
+  const isTokenLoading = Boolean(token && verifyTokenMutation.isPending);
+  const isTokenSuccess = verifyTokenMutation.isSuccess;
+  const isTokenError = verifyTokenMutation.isError;
+  const isOtpSuccess = verifyOtpMutation.isSuccess;
+
+  const status: 'idle' | 'loading' | 'success' | 'error' = isTokenLoading
+    ? 'loading'
+    : isTokenSuccess || isOtpSuccess
+      ? 'success'
+      : isTokenError
+        ? 'error'
+        : 'idle';
+
+  const errorMsg = verifyTokenMutation.isError
+    ? t('verifyEmailFailed')
+    : verifyOtpMutation.error instanceof Error
+      ? verifyOtpMutation.error.message
+      : sendOtpMutation.error instanceof Error
+        ? sendOtpMutation.error.message
+        : '';
 
   // Backward compatibility: If token is present, verify via token
   useEffect(() => {
     if (!token) return;
+    verifyToken(token);
+  }, [token, verifyToken]);
 
-    verifyToken(token, {
-      onSuccess: () => {
-        setStatus('success');
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
-      },
-      onError: () => {
-        setStatus('error');
-        setErrorMsg(t('verifyEmailFailed'));
-      },
-    });
-  }, [token, t, verifyToken, router]);
+  // Navigate to dashboard on success
+  useEffect(() => {
+    if (isTokenSuccess || isOtpSuccess) {
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isTokenSuccess, isOtpSuccess, router]);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -95,31 +109,22 @@ function VerifyEmailContent() {
 
     const cleanOtp = otp.trim();
     if (cleanOtp.length !== 6) {
-      setErrorMsg(t('otpLengthError'));
       return;
     }
 
-    setErrorMsg('');
-    try {
-      await verifyOtp({ email: email.trim(), otp: cleanOtp });
-      setStatus('success');
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : t('otpInvalid'));
-    }
+    verifyOtpMutation.mutate({ email: email.trim(), otp: cleanOtp });
   };
 
   const handleResendOtp = async () => {
-    if (!email.trim() || !canResend || resendingOtp) return;
-    setErrorMsg('');
-    try {
-      await sendOtp({ email: email.trim(), type: 'email-verification' });
-      setCountdown(60);
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : t('errorDefault'));
-    }
+    if (!email.trim() || !canResend || sendOtpMutation.isPending) return;
+    sendOtpMutation.mutate(
+      { email: email.trim(), type: 'email-verification' },
+      {
+        onSuccess: () => {
+          setCountdown(60);
+        },
+      },
+    );
   };
 
   return (
@@ -206,7 +211,7 @@ function VerifyEmailContent() {
               value={otp}
               onChange={(val) => {
                 setOtp(val);
-                if (errorMsg) setErrorMsg('');
+                if (verifyOtpMutation.isError) verifyOtpMutation.reset();
               }}
             >
               <InputOTPGroup className="gap-2">
@@ -240,11 +245,19 @@ function VerifyEmailContent() {
 
           <Button
             type="submit"
-            disabled={verifyingOtp || otp.trim().length !== 6 || !email.trim()}
+            disabled={
+              verifyOtpMutation.isPending ||
+              otp.trim().length !== 6 ||
+              !email.trim()
+            }
             className="w-full h-11 font-semibold"
           >
-            {verifyingOtp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {verifyingOtp ? tCommon('processing') : t('otpVerifyButton')}
+            {verifyOtpMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {verifyOtpMutation.isPending
+              ? tCommon('processing')
+              : t('otpVerifyButton')}
           </Button>
 
           <div className="text-center pt-1">
@@ -252,10 +265,12 @@ function VerifyEmailContent() {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                disabled={resendingOtp}
+                disabled={sendOtpMutation.isPending}
                 className="text-xs font-semibold text-primary underline hover:opacity-80 disabled:opacity-50"
               >
-                {resendingOtp ? tCommon('processing') : t('otpResend')}
+                {sendOtpMutation.isPending
+                  ? tCommon('processing')
+                  : t('otpResend')}
               </button>
             ) : (
               <span className="text-xs text-muted-foreground">

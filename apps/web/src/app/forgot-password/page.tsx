@@ -41,17 +41,35 @@ export default function ForgotPasswordPage() {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [countdown, setCountdown] = useState(60);
 
-  const { mutateAsync: requestReset, isPending: requesting } =
-    useForgotPassword();
-  const { mutateAsync: resetPassword, isPending: resetting } =
-    useResetPassword();
+  const forgotPasswordMutation = useForgotPassword();
+  const resetPasswordMutation = useResetPassword();
 
-  const loading = requesting || resetting;
+  const loading =
+    forgotPasswordMutation.isPending || resetPasswordMutation.isPending;
   const canResend = countdown <= 0;
+
+  const activeMutationError =
+    step === 'email'
+      ? forgotPasswordMutation.error
+      : resetPasswordMutation.error;
+  const errorMsg = activeMutationError
+    ? mapAuthErrorMessage(activeMutationError, t)
+    : '';
+  const successMsg = resetPasswordMutation.isSuccess
+    ? t('resetPasswordSuccess')
+    : '';
+
+  // Redirect on reset success
+  useEffect(() => {
+    if (resetPasswordMutation.isSuccess) {
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [resetPasswordMutation.isSuccess, router]);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -66,9 +84,8 @@ export default function ForgotPasswordPage() {
 
   const handleSendOtp = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
     setEmailError('');
+    forgotPasswordMutation.reset();
 
     const isValidEmail = (val: string) =>
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -82,36 +99,38 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    try {
-      await requestReset({ email: email.trim() });
-      setStep('reset');
-      setCountdown(60);
-    } catch (err) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    }
+    forgotPasswordMutation.mutate(
+      { email: email.trim() },
+      {
+        onSuccess: () => {
+          setStep('reset');
+          setCountdown(60);
+        },
+      },
+    );
   };
 
   const handleResendOtp = async () => {
-    if (!email.trim() || !canResend || requesting) return;
-    setErrorMsg('');
-    try {
-      await requestReset({ email: email.trim() });
-      setCountdown(60);
-    } catch (err) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    }
+    if (!email.trim() || !canResend || forgotPasswordMutation.isPending) return;
+    forgotPasswordMutation.reset();
+    forgotPasswordMutation.mutate(
+      { email: email.trim() },
+      {
+        onSuccess: () => {
+          setCountdown(60);
+        },
+      },
+    );
   };
 
   const handleResetPassword = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
     setPasswordError('');
     setConfirmPasswordError('');
+    resetPasswordMutation.reset();
 
     let hasErr = false;
     if (otp.trim().length !== 6) {
-      setErrorMsg(t('otpLengthError'));
       hasErr = true;
     }
 
@@ -133,19 +152,11 @@ export default function ForgotPasswordPage() {
 
     if (hasErr) return;
 
-    try {
-      await resetPassword({
-        email: email.trim(),
-        otp: otp.trim(),
-        password,
-      });
-      setSuccessMsg(t('resetPasswordSuccess'));
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
-    } catch (err) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    }
+    resetPasswordMutation.mutate({
+      email: email.trim(),
+      otp: otp.trim(),
+      password,
+    });
   };
 
   return (
@@ -157,7 +168,8 @@ export default function ForgotPasswordPage() {
               type="button"
               onClick={() => {
                 setStep('email');
-                setErrorMsg('');
+                forgotPasswordMutation.reset();
+                resetPasswordMutation.reset();
               }}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
             >
@@ -254,7 +266,8 @@ export default function ForgotPasswordPage() {
                 value={otp}
                 onChange={(val) => {
                   setOtp(val);
-                  if (errorMsg) setErrorMsg('');
+                  if (resetPasswordMutation.isError)
+                    resetPasswordMutation.reset();
                 }}
               >
                 <InputOTPGroup className="gap-2">
@@ -341,10 +354,12 @@ export default function ForgotPasswordPage() {
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  disabled={requesting}
+                  disabled={forgotPasswordMutation.isPending}
                   className="text-xs font-semibold text-primary underline hover:opacity-80 disabled:opacity-50"
                 >
-                  {requesting ? tCommon('processing') : t('otpResend')}
+                  {forgotPasswordMutation.isPending
+                    ? tCommon('processing')
+                    : t('otpResend')}
                 </button>
               ) : (
                 <span className="text-xs text-muted-foreground">

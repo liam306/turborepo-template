@@ -4,7 +4,7 @@ import { Sun, Moon, Smartphone, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { saveUserLocale } from '@/i18n';
-import { apiClient } from '@/services/apiClient';
+import { useUpdateProfile } from '@/hooks/queries';
 import { useUserStore } from '@/stores/useUserStore';
 import type { SupportedLocale, ThemeMode } from '@repo/types';
 
@@ -18,11 +18,12 @@ export function ProfilePreferencesCard({
   onThemeModeChange,
 }: ProfilePreferencesCardProps) {
   const { t, i18n } = useTranslation();
+  const updateProfileMutation = useUpdateProfile();
 
   const handleLanguageChange = (code: SupportedLocale) => {
     saveUserLocale(code);
     if (useUserStore.getState().token) {
-      apiClient.patch('/users/profile', { locale: code }).catch(() => {});
+      updateProfileMutation.mutate({ locale: code });
     }
   };
 

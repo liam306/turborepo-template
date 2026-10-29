@@ -12,13 +12,17 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
 import {
   mapAuthErrorMessage,
   getUserRole,
   isAdminRole,
 } from '@/lib/auth-helpers';
-import { useSendVerificationEmail } from '@/hooks/queries';
+import {
+  useSignInEmail,
+  useSignUpEmail,
+  useSignInSocial,
+  useSendVerificationEmail,
+} from '@/hooks/queries';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Button } from '@/components/ui/button';
@@ -42,16 +46,60 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [canResend, setCanResend] = useState(false);
   const [showOtpDialog, setShowOtpDialog] = useState(false);
+
+  const {
+    mutateAsync: signInEmail,
+    isPending: signingIn,
+    error: signInError,
+    reset: resetSignIn,
+  } = useSignInEmail();
+  const {
+    mutateAsync: signUpEmail,
+    isPending: signingUp,
+    error: signUpError,
+    reset: resetSignUp,
+  } = useSignUpEmail();
+  const {
+    mutateAsync: signInSocial,
+    isPending: signingSocial,
+    error: socialError,
+    reset: resetSocial,
+  } = useSignInSocial();
+  const {
+    mutateAsync: sendVerificationEmail,
+    isPending: resending,
+    isSuccess: resendSuccess,
+    reset: resetResend,
+  } = useSendVerificationEmail();
+
+  const loading = signingIn || signingUp || signingSocial;
+  const activeError = isSignUp ? signUpError : signInError;
+  const rawError = activeError || socialError;
+
+  const isEmailNotVerified = Boolean(
+    signInError &&
+    ((signInError as any).message?.includes('verify') ||
+      (signInError as any).status === 403 ||
+      (signInError as any).code === 'EMAIL_NOT_VERIFIED'),
+  );
+
+  const errorMsg = isEmailNotVerified
+    ? t('emailNotVerified')
+    : rawError
+      ? mapAuthErrorMessage(rawError, t)
+      : '';
+  const successMsg = resendSuccess ? t('resendSuccess') : '';
+  const canResend = isEmailNotVerified;
 
   const clearValidationErrors = () => {
     setNameError('');
     setEmailError('');
     setPasswordError('');
+    resetSignIn();
+    resetSignUp();
+    resetSocial();
+    resetResend();
   };
 
   const searchParams = useSearchParams();
@@ -61,9 +109,6 @@ export default function LoginPage() {
       ? rawRedirect
       : '/dashboard';
 
-  const { mutateAsync: sendVerificationEmail, isPending: resending } =
-    useSendVerificationEmail();
-
   const handleResendVerification = async () => {
     if (!email) return;
     try {
@@ -71,10 +116,8 @@ export default function LoginPage() {
         email,
         callbackURL: `${window.location.origin}/verify-email`,
       });
-      setSuccessMsg(t('resendSuccess'));
-      setErrorMsg('');
     } catch {
-      setErrorMsg(t('errorDefault'));
+      // Handled via mutation state
     }
   };
 
@@ -107,66 +150,42 @@ export default function LoginPage() {
 
     if (hasErr) return;
 
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-    setCanResend(false);
-
     try {
       if (isSignUp) {
-        const res = await authClient.signUp.email({
+        await signUpEmail({
           email,
           password,
           name,
           callbackURL: `${window.location.origin}/verify-email`,
         });
-
-        if (res.error) {
-          setErrorMsg(mapAuthErrorMessage(res.error, t));
-        } else {
-          setShowOtpDialog(true);
-        }
+        setShowOtpDialog(true);
       } else {
-        const res = await authClient.signIn.email({
+        const res = await signInEmail({
           email,
           password,
           rememberMe,
           callbackURL: `${window.location.origin}${redirectTo}`,
         });
 
-        if (res.error) {
-          if (
-            res.error.message?.includes('verify') ||
-            res.error.status === 403 ||
-            (res.error as any).code === 'EMAIL_NOT_VERIFIED'
-          ) {
-            setErrorMsg(t('emailNotVerified'));
-            setCanResend(true);
-          } else {
-            setErrorMsg(mapAuthErrorMessage(res.error, t));
-          }
-        } else {
-          const userRole = getUserRole(res.data?.user);
-          const destination =
-            !rawRedirect && isAdminRole(userRole) ? '/admin' : redirectTo;
-          window.location.href = destination;
-        }
+        const userRole = getUserRole(res?.user);
+        const destination =
+          !rawRedirect && isAdminRole(userRole) ? '/admin' : redirectTo;
+        window.location.href = destination;
       }
-    } catch (err: unknown) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    } finally {
-      setLoading(false);
+    } catch {
+      // Handled via mutation error states
     }
   };
 
   const handleSocialAuth = async (provider: 'google') => {
+    clearValidationErrors();
     try {
-      await authClient.signIn.social({
+      await signInSocial({
         provider,
         callbackURL: `${window.location.origin}${redirectTo}`,
       });
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : t('errorDefault'));
+    } catch {
+      // Handled via mutation error state
     }
   };
 
@@ -376,8 +395,6 @@ export default function LoginPage() {
             onClick={() => {
               setIsSignUp(!isSignUp);
               clearValidationErrors();
-              setErrorMsg('');
-              setSuccessMsg('');
             }}
             className="font-semibold text-primary hover:underline"
           >
@@ -392,10 +409,7 @@ export default function LoginPage() {
         onOpenChange={setShowOtpDialog}
         onSuccess={() => {
           setShowOtpDialog(false);
-          setSuccessMsg(t('otpSuccess'));
-          setTimeout(() => {
-            window.location.href = redirectTo;
-          }, 1500);
+          window.location.href = redirectTo;
         }}
       />
     </div>

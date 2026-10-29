@@ -4,13 +4,14 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useState,
   useCallback,
   useSyncExternalStore,
 } from 'react';
 import type { ThemeMode } from '@repo/types';
-import { userApi } from '@/lib/api';
-import { setClientCookie } from '@/lib/cookies';
+import { useUpdateProfile } from '@/hooks/queries';
+import { useThemeStore, THEME_COOKIE_NAME } from '@/stores';
+
+export { THEME_COOKIE_NAME };
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -19,8 +20,6 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export const THEME_COOKIE_NAME = 'APP_THEME';
 
 function subscribeSystemTheme(callback: () => void) {
   if (typeof window === 'undefined') return () => {};
@@ -48,17 +47,8 @@ export function ThemeProvider({
   children,
   defaultTheme = 'system',
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('theme') as ThemeMode | null;
-        if (stored && ['system', 'light', 'dark'].includes(stored)) {
-          return stored;
-        }
-      } catch {}
-    }
-    return defaultTheme;
-  });
+  const { theme, setTheme: setStoreTheme } = useThemeStore();
+  const updateProfileMutation = useUpdateProfile();
 
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
@@ -66,22 +56,17 @@ export function ThemeProvider({
     getServerSystemThemeSnapshot,
   );
 
+  const currentTheme = theme || defaultTheme;
   const resolvedTheme: 'light' | 'dark' =
-    theme === 'system' ? systemTheme : theme;
+    currentTheme === 'system' ? systemTheme : currentTheme;
 
-  const setTheme = useCallback((newTheme: ThemeMode) => {
-    setThemeState(newTheme);
-    // Save cookie with 1 year expiry
-    setClientCookie(THEME_COOKIE_NAME, newTheme);
-    try {
-      localStorage.setItem('theme', newTheme);
-    } catch {}
-
-    // Background sync to backend if session exists
-    userApi.updateProfile({ theme: newTheme }).catch(() => {
-      // Silently ignore if not logged in or backend offline
-    });
-  }, []);
+  const setTheme = useCallback(
+    (newTheme: ThemeMode) => {
+      setStoreTheme(newTheme);
+      updateProfileMutation.mutate({ theme: newTheme });
+    },
+    [setStoreTheme, updateProfileMutation],
+  );
 
   // Synchronize <html> root class with resolved theme
   useEffect(() => {
@@ -94,7 +79,9 @@ export function ThemeProvider({
   }, [resolvedTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{ theme: currentTheme, resolvedTheme, setTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -19,8 +19,9 @@ import {
   useChangePassword,
   useDeleteData,
   useDeleteAccount,
+  useSignOut,
 } from '@/hooks/queries';
-import { signOut } from '@/lib/auth-client';
+import { toast } from 'sonner';
 import { AvatarCropModal } from '@/components/AvatarCropModal';
 import {
   Dialog,
@@ -53,6 +54,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const changePasswordMutation = useChangePassword();
   const deleteDataMutation = useDeleteData();
   const deleteAccountMutation = useDeleteAccount();
+  const signOutMutation = useSignOut();
 
   const [customName, setCustomName] = useState<string | null>(null);
   const name = customName ?? profile?.name ?? '';
@@ -71,23 +73,50 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     confirmPassword?: string;
   }>({});
 
-  // Feedback states
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] =
     useState(false);
 
-  const clearMessages = () => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
+  const resetAllMutations = () => {
+    updateProfileMutation.reset();
+    uploadAvatarMutation.reset();
+    setPasswordMutation.reset();
+    changePasswordMutation.reset();
+    deleteDataMutation.reset();
+    deleteAccountMutation.reset();
   };
+
+  const activeError =
+    updateProfileMutation.error ||
+    uploadAvatarMutation.error ||
+    setPasswordMutation.error ||
+    changePasswordMutation.error ||
+    deleteDataMutation.error ||
+    deleteAccountMutation.error;
+
+  const errorMsg = activeError
+    ? activeError instanceof Error
+      ? activeError.message
+      : t('errorOccurred')
+    : null;
+
+  const successMsg = updateProfileMutation.isSuccess
+    ? t('nameSuccess')
+    : uploadAvatarMutation.isSuccess
+      ? uploadAvatarMutation.data?.message || t('avatarSuccess')
+      : setPasswordMutation.isSuccess
+        ? setPasswordMutation.data?.message || t('passwordSetSuccess')
+        : changePasswordMutation.isSuccess
+          ? changePasswordMutation.data?.message || t('passwordChangeSuccess')
+          : deleteDataMutation.isSuccess
+            ? deleteDataMutation.data?.message || t('deleteDataSuccess')
+            : null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setErrorMsg(t('invalidImage'));
+      toast.error(t('invalidImage'));
       return;
     }
 
@@ -101,17 +130,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   const handleUploadAvatar = (croppedBlob: Blob) => {
-    clearMessages();
+    resetAllMutations();
     const formData = new FormData();
     formData.append('file', croppedBlob, 'avatar.webp');
 
     uploadAvatarMutation.mutate(formData, {
-      onSuccess: (res) => {
-        setSuccessMsg(res?.message || t('avatarSuccess'));
+      onSuccess: () => {
         fetchProfile();
-      },
-      onError: (err) => {
-        setErrorMsg(err instanceof Error ? err.message : t('cropError'));
       },
     });
   };
@@ -120,17 +145,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     e.preventDefault();
     if (!name.trim()) return;
 
-    clearMessages();
+    resetAllMutations();
     updateProfileMutation.mutate(
       { name: name.trim() },
       {
         onSuccess: () => {
-          setSuccessMsg(t('nameSuccess'));
           setCustomName(null);
           fetchProfile();
-        },
-        onError: (err) => {
-          setErrorMsg(err instanceof Error ? err.message : t('errorOccurred'));
         },
       },
     );
@@ -162,24 +183,18 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
 
     setPasswordErrors({});
-    clearMessages();
+    resetAllMutations();
     const hasPassword = profile?.hasPassword;
 
     if (hasPassword) {
       changePasswordMutation.mutate(
         { currentPassword, newPassword },
         {
-          onSuccess: (res) => {
-            setSuccessMsg(res?.message || t('passwordChangeSuccess'));
+          onSuccess: () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
             setPasswordErrors({});
-          },
-          onError: (err) => {
-            setErrorMsg(
-              err instanceof Error ? err.message : t('errorOccurred'),
-            );
           },
         },
       );
@@ -187,17 +202,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setPasswordMutation.mutate(
         { newPassword },
         {
-          onSuccess: (res) => {
-            setSuccessMsg(res?.message || t('passwordSetSuccess'));
+          onSuccess: () => {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
             setPasswordErrors({});
-          },
-          onError: (err) => {
-            setErrorMsg(
-              err instanceof Error ? err.message : t('errorOccurred'),
-            );
           },
         },
       );
@@ -210,15 +219,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       return;
     }
 
-    clearMessages();
-    deleteDataMutation.mutate(undefined, {
-      onSuccess: (res) => {
-        setSuccessMsg(res?.message || t('deleteDataSuccess'));
-      },
-      onError: (err) => {
-        setErrorMsg(err instanceof Error ? err.message : t('errorOccurred'));
-      },
-    });
+    resetAllMutations();
+    deleteDataMutation.mutate(undefined);
   };
 
   const proceedDeleteAccount = () => {
@@ -229,18 +231,15 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       password = entered;
     }
 
-    clearMessages();
+    resetAllMutations();
     deleteAccountMutation.mutate(
       { password },
       {
         onSuccess: async () => {
           onClose();
-          await signOut();
+          await signOutMutation.mutateAsync();
           // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = '/login';
-        },
-        onError: (err) => {
-          setErrorMsg(err instanceof Error ? err.message : t('errorOccurred'));
         },
       },
     );
@@ -393,8 +392,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   className="m-0 focus-visible:outline-none"
                 >
                   <SessionsTab
-                    onSuccessMsg={(msg) => setSuccessMsg(msg)}
-                    onErrorMsg={(msg) => setErrorMsg(msg)}
+                    onSuccessMsg={(msg) => toast.success(msg)}
+                    onErrorMsg={(msg) => toast.error(msg)}
                   />
                 </TabsContent>
 

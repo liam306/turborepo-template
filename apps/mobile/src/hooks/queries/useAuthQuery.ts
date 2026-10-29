@@ -9,6 +9,13 @@ import {
   type IRequestPasswordResetDto,
   type IResetPasswordDto,
 } from '@/services/auth.service';
+import { signInGoogle } from '@/services/social-auth.service';
+
+export function useSignInGoogle() {
+  return useMutation({
+    mutationFn: () => signInGoogle(),
+  });
+}
 
 export function useSignInEmail() {
   return useMutation({

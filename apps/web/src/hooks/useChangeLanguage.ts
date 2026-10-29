@@ -4,16 +4,17 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SupportedLocale } from '@repo/types';
 import { setClientCookie } from '@/lib/cookies';
-import { userApi } from '@/lib/api/user.api';
+import { useUpdateProfile } from '@/hooks/queries';
 
 export function useChangeLanguage(currentLocale: string) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const updateProfileMutation = useUpdateProfile();
 
   const changeLanguage = (nextLocale: SupportedLocale) => {
     if (nextLocale === currentLocale) return;
     setClientCookie('NEXT_LOCALE', nextLocale);
-    userApi.updateProfile({ locale: nextLocale }).catch(() => {});
+    updateProfileMutation.mutate({ locale: nextLocale });
     startTransition(() => {
       router.refresh();
     });

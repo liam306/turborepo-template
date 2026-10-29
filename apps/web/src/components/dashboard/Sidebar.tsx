@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { SidebarUserMenu } from '@/components/dashboard/SidebarUserMenu';
+import { useSidebarStore } from '@/stores';
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -28,36 +29,16 @@ export function DashboardSidebar({
 }: SidebarProps) {
   const t = useTranslations('navigation');
   const pathname = usePathname();
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
-
-  useEffect(() => {
-    const id = setTimeout(() => {
-      try {
-        const saved = localStorage.getItem('sidebar_collapsed');
-        if (saved === 'true') {
-          setInternalCollapsed(true);
-        }
-      } catch {
-        // Ignore localStorage errors
-      }
-    }, 0);
-    return () => clearTimeout(id);
-  }, []);
+  const { isCollapsed: storeCollapsed, toggleCollapsed } = useSidebarStore();
 
   const isCollapsed =
-    controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+    controlledCollapsed !== undefined ? controlledCollapsed : storeCollapsed;
 
   const toggle = () => {
     if (onToggleCollapse) {
       onToggleCollapse();
     } else {
-      const next = !internalCollapsed;
-      setInternalCollapsed(next);
-      try {
-        localStorage.setItem('sidebar_collapsed', String(next));
-      } catch {
-        // Ignore localStorage errors
-      }
+      toggleCollapsed();
     }
   };
 

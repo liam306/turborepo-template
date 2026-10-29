@@ -3,12 +3,16 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useUserStore } from '@/stores/useUserStore';
+import { useUserProfile } from '@/hooks/queries';
 import { User, Settings } from 'lucide-react-native';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const profile = useUserStore((state) => state.profile);
+  const token = useUserStore((state) => state.token);
+  const localProfile = useUserStore((state) => state.profile);
+  const { data: serverProfile } = useUserProfile(Boolean(token));
+  const profile = serverProfile || localProfile;
 
   return (
     <ScrollView className="flex-1 bg-slate-50 dark:bg-slate-950">

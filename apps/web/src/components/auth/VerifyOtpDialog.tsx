@@ -32,15 +32,16 @@ export function VerifyOtpDialog({
   const tCommon = useTranslations('common');
 
   const [otp, setOtp] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
   const [countdown, setCountdown] = useState(60);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const canResend = countdown <= 0;
 
-  const { mutateAsync: verifyOtp, isPending: verifying } = useVerifyEmailOtp();
-  const { mutateAsync: sendOtp, isPending: resending } =
-    useSendVerificationOtp();
+  const verifyOtpMutation = useVerifyEmailOtp();
+  const sendOtpMutation = useSendVerificationOtp();
+
+  const error = verifyOtpMutation.error || sendOtpMutation.error;
+  const errorMsg = error ? mapAuthErrorMessage(error, t) : '';
 
   // Focus input when dialog opens
   useEffect(() => {
@@ -64,34 +65,36 @@ export function VerifyOtpDialog({
     e.preventDefault();
     const cleanOtp = otp.trim();
     if (cleanOtp.length !== 6) {
-      setErrorMsg(t('otpLengthError'));
       return;
     }
 
-    setErrorMsg('');
-    try {
-      await verifyOtp({ email: email.trim(), otp: cleanOtp });
-      onSuccess();
-    } catch (err: unknown) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    }
+    verifyOtpMutation.mutate(
+      { email: email.trim(), otp: cleanOtp },
+      {
+        onSuccess: () => {
+          onSuccess();
+        },
+      },
+    );
   };
 
   const handleResend = async () => {
-    if (!canResend || resending) return;
-    setErrorMsg('');
-    try {
-      await sendOtp({ email: email.trim(), type: 'email-verification' });
-      setCountdown(60);
-    } catch (err: unknown) {
-      setErrorMsg(mapAuthErrorMessage(err, t));
-    }
+    if (!canResend || sendOtpMutation.isPending) return;
+    sendOtpMutation.mutate(
+      { email: email.trim(), type: 'email-verification' },
+      {
+        onSuccess: () => {
+          setCountdown(60);
+        },
+      },
+    );
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setOtp('');
-      setErrorMsg('');
+      verifyOtpMutation.reset();
+      sendOtpMutation.reset();
       setCountdown(60);
     }
     onOpenChange(newOpen);
@@ -100,7 +103,10 @@ export function VerifyOtpDialog({
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 6);
     setOtp(val);
-    if (errorMsg) setErrorMsg('');
+    if (error) {
+      verifyOtpMutation.reset();
+      sendOtpMutation.reset();
+    }
   };
 
   return (
@@ -142,11 +148,15 @@ export function VerifyOtpDialog({
 
           <Button
             type="submit"
-            disabled={verifying || otp.trim().length !== 6}
+            disabled={verifyOtpMutation.isPending || otp.trim().length !== 6}
             className="w-full h-11 font-semibold"
           >
-            {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {verifying ? tCommon('processing') : t('otpVerifyButton')}
+            {verifyOtpMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {verifyOtpMutation.isPending
+              ? tCommon('processing')
+              : t('otpVerifyButton')}
           </Button>
 
           <div className="text-center pt-1">
@@ -154,10 +164,12 @@ export function VerifyOtpDialog({
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={resending}
+                disabled={sendOtpMutation.isPending}
                 className="text-xs font-semibold text-primary underline hover:opacity-80 disabled:opacity-50"
               >
-                {resending ? tCommon('processing') : t('otpResend')}
+                {sendOtpMutation.isPending
+                  ? tCommon('processing')
+                  : t('otpResend')}
               </button>
             ) : (
               <span className="text-xs text-muted-foreground">

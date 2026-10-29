@@ -36,7 +36,7 @@ Plan to port modular AST architecture checking and inter-file translation analys
 
 ## Phase 4: Full System Verification
 
-- [ ] **Phase 4.1**: Run `pnpm test:scripts`
-- [ ] **Phase 4.2**: Run `pnpm check:rules` and `pnpm check:i18n`
-- [ ] **Phase 4.3**: Run root `pnpm lint`, `pnpm typecheck`, `pnpm format:check`
-- [ ] **Phase 4.4**: Final documentation update & completion
+- [x] **Phase 4.1**: Run `pnpm test:scripts`
+- [x] **Phase 4.2**: Run `pnpm check:rules` and `pnpm check:i18n`
+- [x] **Phase 4.3**: Run root `pnpm lint`, `pnpm typecheck`, `pnpm format:check`
+- [x] **Phase 4.4**: Final documentation update & completion

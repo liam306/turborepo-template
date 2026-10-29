@@ -24,6 +24,9 @@ pnpm test
 ## Architecture & Conventions
 
 - **Database**: Drizzle ORM PostgreSQL. Injected via `DatabaseService` (adapter in `src/database/database.service.ts` wrapping `@repo/database` schema, client, and repositories). Never write raw SQL directly when Drizzle query builder or repository methods suffice.
+  - **Repository Pattern Mandate**: For entities managed by domain repositories in `@repo/database` (such as `usersRepository`), services, guards, and controllers MUST invoke repository methods passing `this.dbService.db` or transaction `tx`. Do NOT write direct ad-hoc Drizzle queries (`this.dbService.db.query.*`, `this.dbService.db.select()`, `this.dbService.db.update()`) across application layers.
+  - **Transaction Support**: Pass transaction client `tx` directly into repository functions (e.g. `usersRepository.softDelete(tx, userId)`).
+  - **Unit Testing Boundary**: Always mock at the repository boundary using `jest.spyOn(xxxRepository, 'method')`. Never mock chained Drizzle query builder calls (`mockDb.query.*`, `mockDb.update.set.where`).
 - **Authentication**: Better Auth (`better-auth`). Protected routes use `@UseGuards(AuthGuard)` and read user session from request.
 - **Queue / Background Jobs**: BullMQ with Redis for background tasks (`MailProcessor`).
 - **Shared Packages**:

@@ -36,3 +36,17 @@ pnpm --filter @repo/database typecheck
    - Keep schema relations defined using Drizzle's `relations(...)` syntax where appropriate.
 4. **Soft Delete**:
    - Primary domain tables must include `deletedAt: timestamp('deleted_at', { withTimezone: true })`.
+
+## Repository Pattern & Data Access Standards
+
+1. **Repository Factory & Architecture**:
+   - Soft-delete domain entities MUST be wrapped using `createSoftDeleteRepository(table, config)` in `src/repositories/`.
+   - All repository functions MUST accept `db: DbOrTx` (`DbClient | TxClient`) as their first parameter. Never capture a global database client or connection instance inside repository closures.
+   - All read queries (`findById`, `findMany`, `count`) MUST apply `repositoryReadFilter` by default to exclude records where `deletedAt IS NOT NULL`. To include soft-deleted records, callers pass `{ includeDeleted: true }`.
+   - Mutations (`update`, `softDelete`, `restore`) MUST maintain timestamp invariants:
+     - `update`: sets `updatedAt = new Date()`.
+     - `softDelete`: sets `deletedAt = now` and `updatedAt = now`.
+     - `restore`: sets `deletedAt = null` and `updatedAt = new Date()`.
+2. **Repository Testing Standards**:
+   - Unit tests for repository logic live in `src/repositories/__tests__/`.
+   - Use lightweight query double chains (`queryDouble`) to verify query construction, filters, pagination, and SQL clauses without requiring a running database server.

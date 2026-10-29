@@ -29,7 +29,7 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
 
 1. **Separation of Concerns & Code Modularization**:
    - Pure business/domain calculations stay in `packages/core`.
-   - Database schema, queries, and client stay in `packages/database`.
+   - Database schema, queries, client, and domain repositories stay in `packages/database`.
    - Shared types and DTOs stay in `packages/types`.
    - Shared utility functions stay in `packages/utils`.
    - **No giant monolithic files**: Keep files small, focused, and single-responsibility (< 200-300 lines). Break down screens into modular sub-components, extract custom hooks, and isolate API/service logic outside of UI components.
@@ -56,10 +56,11 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
 9. **Git Commit Guidelines & Automatic Commit**:
    - Use Conventional Commits (`feat(...)`, `fix(...)`, `refactor(...)`, `test(...)`, `chore(...)`).
    - Automatically commit changes upon completing a task once all verification steps (formatting, tests, typecheck, lint) pass without errors.
-10. **System-Wide Soft Delete Standards**:
+10. **System-Wide Soft Delete Standards & Repository Pattern**:
     - Never execute hard SQL `.delete(...)` on primary domain entities (`user`).
     - Soft delete sets `deletedAt: new Date()`.
-    - All regular listing and retrieval queries MUST include `isNull(table.deletedAt)` to prevent leaking trashed records.
+    - All regular listing and retrieval queries MUST include `isNull(table.deletedAt)` to prevent leaking trashed records. Enforce via `createSoftDeleteRepository` and `repositoryReadFilter` in `packages/database`.
+    - Services, guards, and controllers in `apps/api` MUST call domain repositories from `@repo/database` rather than building direct ad-hoc queries for repository-managed entities.
     - Every soft-deletable entity must provide a corresponding restore endpoint (`POST .../restore`) resetting `deletedAt: null`.
 11. **Database Schema & Migrations Mandate**:
     - **Never** write manual `.sql` migration files in `packages/database/drizzle/` or manually edit `packages/database/drizzle/meta/_journal.json`. Drizzle Kit requires snapshot files in `meta/` to track schema diffs.

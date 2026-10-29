@@ -105,5 +105,5 @@ Plan to configure automated dependency updates via Renovate Bot tailored for the
   - Execute workspace lint, typecheck, tests, and builds: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - **Rationale**: Verifies total monorepo integrity before concluding the task.
 
-- [ ] **Phase 6.1**: Run complete verification suite.
-- [ ] **Phase 6.2**: Final plan checklist mark-off and git commit.
+- [x] **Phase 6.1**: Run complete verification suite.
+- [x] **Phase 6.2**: Final plan checklist mark-off and git commit.

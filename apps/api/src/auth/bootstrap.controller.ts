@@ -16,8 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import crypto from 'crypto';
-import { eq } from 'drizzle-orm';
-import { user, account } from '@repo/database';
+import { usersRepository } from '@repo/database';
 import { hashPassword } from 'better-auth/crypto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DatabaseService } from '../database/database.service';
@@ -84,11 +83,10 @@ export class BootstrapController {
       });
     }
 
-    const [existingAdmin] = await this.dbService.db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.role, 'admin'))
-      .limit(1);
+    const existingAdmin = await usersRepository.findFirstAdmin(
+      this.dbService.db,
+      { includeDeleted: true },
+    );
 
     if (existingAdmin) {
       throw new ForbiddenException({
@@ -100,41 +98,37 @@ export class BootstrapController {
     const email = dto.email.trim().toLowerCase();
     const hashedPassword = await hashPassword(dto.password);
 
-    const [existingUser] = await this.dbService.db
-      .select()
-      .from(user)
-      .where(eq(user.email, email))
-      .limit(1);
+    const existingUser = await usersRepository.findByEmail(
+      this.dbService.db,
+      email,
+      { includeDeleted: true },
+    );
 
     let targetUserId: string;
 
     if (existingUser) {
       targetUserId = existingUser.id;
-      await this.dbService.db
-        .update(user)
-        .set({
-          role: 'admin',
-          emailVerified: true,
-          updatedAt: new Date(),
-        })
-        .where(eq(user.id, existingUser.id));
+      await usersRepository.update(this.dbService.db, existingUser.id, {
+        role: 'admin',
+        emailVerified: true,
+      });
 
-      const [existingAccount] = await this.dbService.db
-        .select({ id: account.id })
-        .from(account)
-        .where(eq(account.userId, existingUser.id))
-        .limit(1);
+      const accounts = await usersRepository.findAccountsByUserId(
+        this.dbService.db,
+        existingUser.id,
+      );
+      const existingAccount = accounts[0];
 
       if (existingAccount) {
-        await this.dbService.db
-          .update(account)
-          .set({
+        await usersRepository.updateAccount(
+          this.dbService.db,
+          existingAccount.id,
+          {
             password: hashedPassword,
-            updatedAt: new Date(),
-          })
-          .where(eq(account.id, existingAccount.id));
+          },
+        );
       } else {
-        await this.dbService.db.insert(account).values({
+        await usersRepository.createAccount(this.dbService.db, {
           id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
           accountId: existingUser.id,
           providerId: 'credential',
@@ -146,7 +140,7 @@ export class BootstrapController {
       }
     } else {
       targetUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      await this.dbService.db.insert(user).values({
+      await usersRepository.insert(this.dbService.db, {
         id: targetUserId,
         name: dto.name?.trim() || 'Admin',
         email,
@@ -156,7 +150,7 @@ export class BootstrapController {
         updatedAt: new Date(),
       });
 
-      await this.dbService.db.insert(account).values({
+      await usersRepository.createAccount(this.dbService.db, {
         id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
         accountId: targetUserId,
         providerId: 'credential',

@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne, type SQL } from 'drizzle-orm';
 import { user, session, account } from '../schema/auth';
 import type { DbOrTx } from '../client';
 import { createSoftDeleteRepository } from './create-soft-delete-repository';
@@ -7,7 +7,9 @@ import type { RepositoryReadOptions } from './repository.types';
 export type UserRecord = typeof user.$inferSelect;
 export type NewUserRecord = typeof user.$inferInsert;
 export type SessionRecord = typeof session.$inferSelect;
+export type NewSessionRecord = typeof session.$inferInsert;
 export type AccountRecord = typeof account.$inferSelect;
+export type NewAccountRecord = typeof account.$inferInsert;
 
 const base = createSoftDeleteRepository(user, {
   defaultOrderBy: desc(user.createdAt),
@@ -106,11 +108,69 @@ export const usersRepository = {
       .orderBy(desc(session.createdAt));
   },
 
+  async findSessionByIdAndUserId(
+    db: DbOrTx,
+    sessionId: string,
+    userId: string,
+  ): Promise<SessionRecord | null> {
+    const [row] = await db
+      .select()
+      .from(session)
+      .where(and(eq(session.id, sessionId), eq(session.userId, userId)))
+      .limit(1);
+    return row ?? null;
+  },
+
+  async deleteSession(
+    db: DbOrTx,
+    sessionId: string,
+  ): Promise<void> {
+    await db.delete(session).where(eq(session.id, sessionId));
+  },
+
+  async deleteOtherSessions(
+    db: DbOrTx,
+    userId: string,
+    currentSessionId?: string,
+  ): Promise<void> {
+    if (!currentSessionId) {
+      await db.delete(session).where(eq(session.userId, userId));
+    } else {
+      await db
+        .delete(session)
+        .where(
+          and(eq(session.userId, userId), ne(session.id, currentSessionId)),
+        );
+    }
+  },
+
   async deleteSessionsByUserId(
     db: DbOrTx,
     userId: string,
   ): Promise<void> {
     await db.delete(session).where(eq(session.userId, userId));
+  },
+
+  async createAccount(
+    db: DbOrTx,
+    values: NewAccountRecord,
+  ): Promise<AccountRecord> {
+    const [created] = await db.insert(account).values(values).returning();
+    if (!created) throw new Error('Account insert returned no row');
+    return created;
+  },
+
+  async updateAccount(
+    db: DbOrTx,
+    accountId: string,
+    values: Partial<NewAccountRecord>,
+  ): Promise<AccountRecord | null> {
+    const [updated] = await db
+      .update(account)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(account.id, accountId))
+      .returning();
+    return updated ?? null;
   },
 
   async deleteAccountsByUserId(

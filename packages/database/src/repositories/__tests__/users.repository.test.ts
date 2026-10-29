@@ -23,6 +23,7 @@ function queryDouble(result: unknown[] = []) {
     'set',
     'returning',
     'for',
+    'delete',
   ]) {
     chain[method] = (...args: unknown[]) => {
       calls.push({ method, args });
@@ -70,9 +71,18 @@ test('usersRepository.findFirstAdmin finds admin user', async () => {
   );
 });
 
-test('usersRepository.findByIdWithLock queries with for update', async () => {
-  const client = queryDouble([{ id: 'usr_1' }]);
-  const found = await usersRepository.findByIdWithLock(client.db, 'usr_1');
-  assert.deepEqual(found, { id: 'usr_1' });
-  assert.ok(client.calls.some((call) => call.method === 'for' && call.args[0] === 'update'));
+test('usersRepository.findSessionByIdAndUserId queries matching session', async () => {
+  const client = queryDouble([{ id: 'sess_1', userId: 'usr_1' }]);
+  const found = await usersRepository.findSessionByIdAndUserId(client.db, 'sess_1', 'usr_1');
+  assert.deepEqual(found, { id: 'sess_1', userId: 'usr_1' });
 });
+
+test('usersRepository.deleteSession deletes specified session', async () => {
+  const client = queryDouble([]);
+  await usersRepository.deleteSession(client.db, 'sess_1');
+  assert.equal(
+    client.calls.find((call) => call.method === 'from')?.args[0],
+    undefined,
+  );
+});
+

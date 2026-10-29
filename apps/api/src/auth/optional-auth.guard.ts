@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { user } from '@repo/database';
+import { usersRepository } from '@repo/database';
 import { AuthService } from './auth.service';
 import { DatabaseService } from '../database/database.service';
 import type { AuthUser } from './auth.types';
@@ -40,17 +39,12 @@ export class OptionalAuthGuard implements CanActivate {
         return true;
       }
 
-      if (this.dbService?.db?.query?.user) {
-        const dbUser = await this.dbService.db.query.user.findFirst({
-          where: eq(user.id, session.user.id),
-          columns: {
-            role: true,
-            bannedAt: true,
-            bannedUntil: true,
-            bannedReason: true,
-            deletedAt: true,
-          },
-        });
+      if (this.dbService?.db) {
+        const dbUser = await usersRepository.findById(
+          this.dbService.db,
+          session.user.id,
+          { includeDeleted: true },
+        );
 
         if (dbUser?.deletedAt) {
           return true;

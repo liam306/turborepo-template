@@ -6,8 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { I18nContext, I18nService } from 'nestjs-i18n';
-import { eq } from 'drizzle-orm';
-import { user } from '@repo/database';
+import { usersRepository } from '@repo/database';
 import { AuthService } from './auth.service';
 import { DatabaseService } from '../database/database.service';
 import type { AuthUser } from './auth.types';
@@ -64,17 +63,12 @@ export class AuthGuard implements CanActivate {
         );
       }
 
-      if (this.dbService?.db?.query?.user) {
-        const dbUser = await this.dbService.db.query.user.findFirst({
-          where: eq(user.id, session.user.id),
-          columns: {
-            role: true,
-            bannedAt: true,
-            bannedUntil: true,
-            bannedReason: true,
-            deletedAt: true,
-          },
-        });
+      if (this.dbService?.db) {
+        const dbUser = await usersRepository.findById(
+          this.dbService.db,
+          session.user.id,
+          { includeDeleted: true },
+        );
 
         if (dbUser?.deletedAt) {
           throw new ForbiddenException({

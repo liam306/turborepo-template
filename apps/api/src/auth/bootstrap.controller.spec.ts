@@ -1,4 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
+import { usersRepository } from '@repo/database';
 import { BootstrapController } from './bootstrap.controller';
 
 jest.mock('better-auth/crypto', () => ({
@@ -9,30 +10,21 @@ describe('BootstrapController', () => {
   let controller: BootstrapController;
   let mockConfigService: any;
   let mockDbService: any;
-  let mockSelect: jest.Mock;
-  let mockUpdate: jest.Mock;
-  let mockInsert: jest.Mock;
 
   beforeEach(() => {
     mockConfigService = {
       get: jest.fn(),
     };
 
-    mockSelect = jest.fn();
-    mockUpdate = jest.fn();
-    mockInsert = jest.fn();
-
     mockDbService = {
-      db: {
-        select: mockSelect,
-        update: mockUpdate,
-        insert: mockInsert,
-      },
+      db: {},
     };
 
     controller = new BootstrapController(mockConfigService, mockDbService, {
       t: jest.fn((key: string) => key),
     } as any);
+
+    jest.clearAllMocks();
   });
 
   it('throws ForbiddenException if ADMIN_BOOTSTRAP_TOKEN is not configured', async () => {
@@ -59,13 +51,10 @@ describe('BootstrapController', () => {
 
   it('throws ForbiddenException if an admin already exists', async () => {
     mockConfigService.get.mockReturnValue('correct-secret-token');
-
-    const chain = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 'existing_admin' }]),
-    };
-    mockSelect.mockReturnValue(chain);
+    jest.spyOn(usersRepository, 'findFirstAdmin').mockResolvedValue({
+      id: 'existing_admin',
+      role: 'admin',
+    } as any);
 
     await expect(
       controller.bootstrap('correct-secret-token', {
@@ -77,15 +66,14 @@ describe('BootstrapController', () => {
 
   it('creates new admin if token matches and no admin exists', async () => {
     mockConfigService.get.mockReturnValue('correct-secret-token');
-
-    mockSelect.mockImplementation(() => ({
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([]),
-    }));
-
-    const insertValuesMock = jest.fn().mockResolvedValue({});
-    mockInsert.mockReturnValue({ values: insertValuesMock });
+    jest.spyOn(usersRepository, 'findFirstAdmin').mockResolvedValue(null);
+    jest.spyOn(usersRepository, 'findByEmail').mockResolvedValue(null);
+    const insertUserSpy = jest
+      .spyOn(usersRepository, 'insert')
+      .mockResolvedValue({ id: 'usr_new' } as any);
+    const createAccountSpy = jest
+      .spyOn(usersRepository, 'createAccount')
+      .mockResolvedValue({ id: 'acc_new' } as any);
 
     const result = await controller.bootstrap('correct-secret-token', {
       email: 'admin@example.com',
@@ -97,6 +85,7 @@ describe('BootstrapController', () => {
     expect(result.message).toBe('auth.bootstrap.success');
     expect(result.data.email).toBe('admin@example.com');
     expect(result.data.role).toBe('admin');
-    expect(insertValuesMock).toHaveBeenCalledTimes(2); // user + account
+    expect(insertUserSpy).toHaveBeenCalled();
+    expect(createAccountSpy).toHaveBeenCalled();
   });
 });

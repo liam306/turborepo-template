@@ -3,13 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm';
 import { I18nService } from 'nestjs-i18n';
 import sharp from 'sharp';
 import { DatabaseService } from '../database/database.service';
 import { StorageService } from '../storage/storage.service';
 import { AuthService } from '../auth/auth.service';
-import { account, session, user } from '@repo/database';
+import { usersRepository, type NewUserRecord } from '@repo/database';
 import {
   IAvatarUploadResponse,
   IMessageResponse,
@@ -35,18 +34,17 @@ export class UsersService {
   ) {}
 
   async getProfile(userId: string, lang = 'vi'): Promise<IUserProfile> {
-    const dbUser = await this.dbService.db.query.user.findFirst({
-      where: and(eq(user.id, userId), isNull(user.deletedAt)),
-    });
+    const dbUser = await usersRepository.findById(this.dbService.db, userId);
 
     if (!dbUser) {
       const msg = this.i18n.t('common.errors.userNotFound', { lang });
       throw new NotFoundException(msg);
     }
 
-    const accounts = await this.dbService.db.query.account.findMany({
-      where: eq(account.userId, userId),
-    });
+    const accounts = await usersRepository.findAccountsByUserId(
+      this.dbService.db,
+      userId,
+    );
 
     const providers = accounts.map((acc) => acc.providerId);
     const hasPassword = accounts.some(
@@ -74,18 +72,14 @@ export class UsersService {
     dto: UpdateProfileDto,
     lang = 'vi',
   ): Promise<IUserProfile> {
-    const existing = await this.dbService.db.query.user.findFirst({
-      where: and(eq(user.id, userId), isNull(user.deletedAt)),
-    });
+    const existing = await usersRepository.findById(this.dbService.db, userId);
 
     if (!existing) {
       const msg = this.i18n.t('common.errors.userNotFound', { lang });
       throw new NotFoundException(msg);
     }
 
-    const updateData: Partial<typeof user.$inferInsert> = {
-      updatedAt: new Date(),
-    };
+    const updateData: Partial<NewUserRecord> = {};
 
     if (dto.name !== undefined) {
       updateData.name = dto.name.trim();
@@ -99,10 +93,7 @@ export class UsersService {
       updateData.locale = dto.locale;
     }
 
-    await this.dbService.db
-      .update(user)
-      .set(updateData)
-      .where(eq(user.id, userId));
+    await usersRepository.update(this.dbService.db, userId, updateData);
 
     return this.getProfile(userId, lang);
   }
@@ -147,10 +138,9 @@ export class UsersService {
       this.storageService.resolvePublicUrl(key) ||
       `/storage/${key}`;
 
-    await this.dbService.db
-      .update(user)
-      .set({ image: avatarUrl, updatedAt: new Date() })
-      .where(eq(user.id, userId));
+    await usersRepository.update(this.dbService.db, userId, {
+      image: avatarUrl,
+    });
 
     return {
       avatarUrl,
@@ -217,9 +207,7 @@ export class UsersService {
   }
 
   async deleteUserData(userId: string, lang = 'vi'): Promise<IMessageResponse> {
-    const existing = await this.dbService.db.query.user.findFirst({
-      where: and(eq(user.id, userId), isNull(user.deletedAt)),
-    });
+    const existing = await usersRepository.findById(this.dbService.db, userId);
 
     if (!existing) {
       const msg = this.i18n.t('common.errors.userNotFound', { lang });
@@ -239,8 +227,8 @@ export class UsersService {
   }
 
   async restoreUser(userId: string, lang = 'vi'): Promise<IMessageResponse> {
-    const existing = await this.dbService.db.query.user.findFirst({
-      where: eq(user.id, userId),
+    const existing = await usersRepository.findById(this.dbService.db, userId, {
+      includeDeleted: true,
     });
 
     if (!existing) {
@@ -248,10 +236,7 @@ export class UsersService {
       throw new NotFoundException(msg);
     }
 
-    await this.dbService.db
-      .update(user)
-      .set({ deletedAt: null, updatedAt: new Date() })
-      .where(eq(user.id, userId));
+    await usersRepository.restore(this.dbService.db, userId);
 
     return {
       message: this.i18n.t('common.users.userRestored', { lang }),
@@ -307,11 +292,8 @@ export class UsersService {
 
     // Revoke all active sessions and soft delete user in a single transaction
     await this.dbService.db.transaction(async (tx) => {
-      await tx.delete(session).where(eq(session.userId, userId));
-      await tx
-        .update(user)
-        .set({ deletedAt: new Date() })
-        .where(eq(user.id, userId));
+      await usersRepository.deleteSessionsByUserId(tx, userId);
+      await usersRepository.softDelete(tx, userId);
     });
 
     return {
@@ -323,10 +305,10 @@ export class UsersService {
     userId: string,
     currentSessionId?: string,
   ): Promise<IUserSession[]> {
-    const activeSessions = await this.dbService.db.query.session.findMany({
-      where: and(eq(session.userId, userId), gt(session.expiresAt, new Date())),
-      orderBy: desc(session.createdAt),
-    });
+    const activeSessions = await usersRepository.findActiveSessionsByUserId(
+      this.dbService.db,
+      userId,
+    );
 
     return activeSessions.map((s) => {
       const parsed = parseUserAgent(s.userAgent);
@@ -349,16 +331,18 @@ export class UsersService {
     sessionId: string,
     lang = 'vi',
   ): Promise<IMessageResponse> {
-    const targetSession = await this.dbService.db.query.session.findFirst({
-      where: and(eq(session.id, sessionId), eq(session.userId, userId)),
-    });
+    const targetSession = await usersRepository.findSessionByIdAndUserId(
+      this.dbService.db,
+      sessionId,
+      userId,
+    );
 
     if (!targetSession) {
       const msg = this.i18n.t('common.errors.sessionNotFound', { lang });
       throw new NotFoundException(msg);
     }
 
-    await this.dbService.db.delete(session).where(eq(session.id, sessionId));
+    await usersRepository.deleteSession(this.dbService.db, sessionId);
 
     return {
       message: this.i18n.t('common.users.sessionRevoked', { lang }),
@@ -370,15 +354,11 @@ export class UsersService {
     currentSessionId?: string,
     lang = 'vi',
   ): Promise<IMessageResponse> {
-    if (!currentSessionId) {
-      await this.dbService.db.delete(session).where(eq(session.userId, userId));
-    } else {
-      await this.dbService.db
-        .delete(session)
-        .where(
-          and(eq(session.userId, userId), ne(session.id, currentSessionId)),
-        );
-    }
+    await usersRepository.deleteOtherSessions(
+      this.dbService.db,
+      userId,
+      currentSessionId,
+    );
 
     return {
       message: this.i18n.t('common.users.otherSessionsRevoked', { lang }),

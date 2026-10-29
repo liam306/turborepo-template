@@ -9,8 +9,7 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { UserRole } from '@repo/types';
 import { ROLES_KEY } from './roles.decorator';
 import { DatabaseService } from '../database/database.service';
-import { eq } from 'drizzle-orm';
-import { user } from '@repo/database';
+import { usersRepository } from '@repo/database';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -55,12 +54,10 @@ export class RolesGuard implements CanActivate {
     }
 
     // Lấy role mới nhất từ database
-    const dbUser = await this.dbService.db.query.user.findFirst({
-      where: eq(user.id, currentUser.id),
-      columns: {
-        role: true,
-      },
-    });
+    const dbUser = await usersRepository.findById(
+      this.dbService.db,
+      currentUser.id,
+    );
 
     const userRole = (dbUser?.role as UserRole) || currentUser.role || 'user';
 

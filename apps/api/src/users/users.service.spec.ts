@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { DatabaseService } from '../database/database.service';
 import { StorageService } from '../storage/storage.service';
 import { AuthService } from '../auth/auth.service';
+import { usersRepository, type UserRecord } from '@repo/database';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -15,37 +16,8 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     mockDb = {
-      query: {
-        user: {
-          findFirst: jest.fn(),
-        },
-        account: {
-          findMany: jest.fn(),
-        },
-        session: {
-          findMany: jest.fn(),
-          findFirst: jest.fn(),
-        },
-      },
-      update: jest.fn().mockReturnValue({
-        set: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue({}),
-        }),
-      }),
-      delete: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue({}),
-      }),
       transaction: jest.fn().mockImplementation(async (callback) => {
-        return callback({
-          delete: jest.fn().mockReturnValue({
-            where: jest.fn().mockResolvedValue({}),
-          }),
-          update: jest.fn().mockReturnValue({
-            set: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue({}),
-            }),
-          }),
-        });
+        return callback(mockDb);
       }),
     };
 
@@ -56,6 +28,7 @@ describe('UsersService', () => {
       resolvePublicUrl: jest
         .fn()
         .mockReturnValue('https://cdn.example.com/avatars/user-1/123.webp'),
+      delete: jest.fn().mockResolvedValue(undefined),
     };
 
     mockAuthService = {
@@ -94,11 +67,12 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
+    jest.clearAllMocks();
   });
 
   describe('getProfile', () => {
     it('throws NotFoundException if user not found', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue(null);
 
       await expect(service.getProfile('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -106,21 +80,54 @@ describe('UsersService', () => {
     });
 
     it('returns user profile with hasPassword and providers', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue({
         id: 'u-1',
         name: 'Nguyen Van A',
         email: 'a@example.com',
         emailVerified: true,
         image: 'https://cdn.example.com/avatar.webp',
+        role: 'user',
         theme: 'dark',
         locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
+        deletedAt: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-02'),
       });
 
-      mockDb.query.account.findMany.mockResolvedValue([
-        { providerId: 'google' },
-        { providerId: 'credential', password: 'hashedpassword' },
+      jest.spyOn(usersRepository, 'findAccountsByUserId').mockResolvedValue([
+        {
+          id: 'acc-1',
+          accountId: 'u-1',
+          providerId: 'google',
+          userId: 'u-1',
+          accessToken: null,
+          refreshToken: null,
+          idToken: null,
+          accessTokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
+          scope: null,
+          password: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'acc-2',
+          accountId: 'u-1',
+          providerId: 'credential',
+          userId: 'u-1',
+          accessToken: null,
+          refreshToken: null,
+          idToken: null,
+          accessTokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
+          scope: null,
+          password: 'hashedpassword',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
 
       const result = await service.getProfile('u-1');
@@ -185,18 +192,31 @@ describe('UsersService', () => {
 
   describe('updateProfile', () => {
     it('updates name, theme, and locale', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({
+      const existingUser: UserRecord = {
         id: 'u-1',
         name: 'Old Name',
         email: 'a@example.com',
         emailVerified: true,
         image: null,
+        role: 'user',
         theme: 'system',
         locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
+        deletedAt: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-02'),
+      };
+
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue(existingUser);
+      jest.spyOn(usersRepository, 'findAccountsByUserId').mockResolvedValue([]);
+      const updateSpy = jest.spyOn(usersRepository, 'update').mockResolvedValue({
+        ...existingUser,
+        name: 'New Name',
+        theme: 'dark',
+        locale: 'en',
       });
-      mockDb.query.account.findMany.mockResolvedValue([]);
 
       const updated = await service.updateProfile('u-1', {
         name: 'New Name',
@@ -204,14 +224,22 @@ describe('UsersService', () => {
         locale: 'en',
       });
 
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledWith(
+        mockDb,
+        'u-1',
+        expect.objectContaining({
+          name: 'New Name',
+          theme: 'dark',
+          locale: 'en',
+        }),
+      );
       expect(updated.id).toBe('u-1');
     });
   });
 
   describe('deleteUserData', () => {
     it('throws NotFoundException if user does not exist', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue(null);
 
       await expect(service.deleteUserData('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -219,7 +247,22 @@ describe('UsersService', () => {
     });
 
     it('runs the application data reset extension hook in a transaction', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({ id: 'u-1' });
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue({
+        id: 'u-1',
+        name: 'User',
+        email: 'user@example.com',
+        emailVerified: true,
+        image: null,
+        role: 'user',
+        theme: 'system',
+        locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
       const res = await service.deleteUserData('u-1', 'vi');
 
@@ -230,15 +273,38 @@ describe('UsersService', () => {
 
   describe('deleteAccount', () => {
     it('throws BadRequestException if account has password but no password provided', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue({
         id: 'u-1',
         name: 'User',
         email: 'user@example.com',
+        emailVerified: true,
+        image: null,
+        role: 'user',
+        theme: 'system',
+        locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
+        deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      mockDb.query.account.findMany.mockResolvedValue([
-        { providerId: 'credential', password: 'hashed' },
+      jest.spyOn(usersRepository, 'findAccountsByUserId').mockResolvedValue([
+        {
+          id: 'acc-1',
+          accountId: 'u-1',
+          providerId: 'credential',
+          userId: 'u-1',
+          accessToken: null,
+          refreshToken: null,
+          idToken: null,
+          accessTokenExpiresAt: null,
+          refreshTokenExpiresAt: null,
+          scope: null,
+          password: 'hashed',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
 
       await expect(
@@ -247,48 +313,81 @@ describe('UsersService', () => {
     });
 
     it('successfully deletes user account and records', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue({
         id: 'u-1',
         name: 'User',
         email: 'user@example.com',
+        emailVerified: true,
         image: 'https://cdn.example.com/avatar.webp',
+        role: 'user',
+        theme: 'system',
+        locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
+        deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      mockDb.query.account.findMany.mockResolvedValue([]);
+      jest.spyOn(usersRepository, 'findAccountsByUserId').mockResolvedValue([]);
+      const deleteSessionsSpy = jest
+        .spyOn(usersRepository, 'deleteSessionsByUserId')
+        .mockResolvedValue(undefined);
+      const softDeleteSpy = jest
+        .spyOn(usersRepository, 'softDelete')
+        .mockResolvedValue(null);
 
       const res = await service.deleteAccount('u-1', {}, {}, 'vi');
 
       expect(mockDb.transaction).toHaveBeenCalled();
+      expect(deleteSessionsSpy).toHaveBeenCalledWith(mockDb, 'u-1');
+      expect(softDeleteSpy).toHaveBeenCalledWith(mockDb, 'u-1');
       expect(res.message).toBeDefined();
     });
   });
 
   describe('restoreUser', () => {
     it('throws NotFoundException when user not found', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue(null);
       await expect(service.restoreUser('not-found')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('successfully restores soft-deleted user', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({
+      jest.spyOn(usersRepository, 'findById').mockResolvedValue({
         id: 'u-1',
+        name: 'User',
+        email: 'user@example.com',
+        emailVerified: true,
+        image: null,
+        role: 'user',
+        theme: 'system',
+        locale: 'vi',
+        bannedAt: null,
+        bannedReason: null,
+        bannedUntil: null,
         deletedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
+      const restoreSpy = jest
+        .spyOn(usersRepository, 'restore')
+        .mockResolvedValue(null);
+
       const res = await service.restoreUser('u-1', 'vi');
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(restoreSpy).toHaveBeenCalledWith(mockDb, 'u-1');
       expect(res.message).toBeDefined();
     });
   });
 
   describe('getSessions', () => {
     it('returns active sessions with device info and marks current session', async () => {
-      mockDb.query.session.findMany.mockResolvedValue([
+      jest.spyOn(usersRepository, 'findActiveSessionsByUserId').mockResolvedValue([
         {
           id: 's-1',
           userId: 'u-1',
+          token: 'tok-1',
           ipAddress: '127.0.0.1',
           userAgent:
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -299,6 +398,7 @@ describe('UsersService', () => {
         {
           id: 's-2',
           userId: 'u-1',
+          token: 'tok-2',
           ipAddress: '192.168.1.1',
           userAgent:
             'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1',
@@ -327,7 +427,7 @@ describe('UsersService', () => {
 
   describe('revokeSession', () => {
     it('throws NotFoundException if session does not exist', async () => {
-      mockDb.query.session.findFirst.mockResolvedValue(null);
+      jest.spyOn(usersRepository, 'findSessionByIdAndUserId').mockResolvedValue(null);
 
       await expect(
         service.revokeSession('u-1', 's-nonexistent'),
@@ -335,23 +435,36 @@ describe('UsersService', () => {
     });
 
     it('deletes session successfully', async () => {
-      mockDb.query.session.findFirst.mockResolvedValue({
+      jest.spyOn(usersRepository, 'findSessionByIdAndUserId').mockResolvedValue({
         id: 's-1',
         userId: 'u-1',
+        token: 'tok-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: new Date(),
+        ipAddress: null,
+        userAgent: null,
       });
+      const deleteSpy = jest
+        .spyOn(usersRepository, 'deleteSession')
+        .mockResolvedValue(undefined);
 
       const res = await service.revokeSession('u-1', 's-1');
 
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(deleteSpy).toHaveBeenCalledWith(mockDb, 's-1');
       expect(res.message).toBeDefined();
     });
   });
 
   describe('revokeOtherSessions', () => {
     it('deletes other sessions successfully', async () => {
+      const deleteSpy = jest
+        .spyOn(usersRepository, 'deleteOtherSessions')
+        .mockResolvedValue(undefined);
+
       const res = await service.revokeOtherSessions('u-1', 's-1');
 
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(deleteSpy).toHaveBeenCalledWith(mockDb, 'u-1', 's-1');
       expect(res.message).toBeDefined();
     });
   });

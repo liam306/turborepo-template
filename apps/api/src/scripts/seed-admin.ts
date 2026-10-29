@@ -10,8 +10,11 @@ dotenv.config({
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 dotenv.config({ quiet: true });
 
-import { closeDbClient, createDbClient, user, account } from '@repo/database';
-import { eq } from 'drizzle-orm';
+import {
+  closeDbClient,
+  createDbClient,
+  usersRepository,
+} from '@repo/database';
 import { hashPassword } from 'better-auth/crypto';
 
 interface AdminSeedArgs {
@@ -80,44 +83,34 @@ async function run() {
   try {
     const hashedPassword = await hashPassword(password);
 
-    const [existingUser] = await db
-      .select()
-      .from(user)
-      .where(eq(user.email, email))
-      .limit(1);
+    const existingUser = await usersRepository.findByEmail(db, email, {
+      includeDeleted: true,
+    });
 
     if (existingUser) {
       console.log(
         `[SeedAdmin] User "${email}" already exists (ID: ${existingUser.id}). Elevating to admin...`,
       );
 
-      await db
-        .update(user)
-        .set({
-          role: 'admin',
-          emailVerified: true,
-          name: existingUser.name || name,
-          updatedAt: new Date(),
-        })
-        .where(eq(user.id, existingUser.id));
+      await usersRepository.update(db, existingUser.id, {
+        role: 'admin',
+        emailVerified: true,
+        name: existingUser.name || name,
+      });
 
-      const [existingAccount] = await db
-        .select()
-        .from(account)
-        .where(eq(account.userId, existingUser.id))
-        .limit(1);
+      const accounts = await usersRepository.findAccountsByUserId(
+        db,
+        existingUser.id,
+      );
+      const existingAccount = accounts[0];
 
       if (existingAccount) {
-        await db
-          .update(account)
-          .set({
-            password: hashedPassword,
-            updatedAt: new Date(),
-          })
-          .where(eq(account.id, existingAccount.id));
+        await usersRepository.updateAccount(db, existingAccount.id, {
+          password: hashedPassword,
+        });
       } else {
         const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-        await db.insert(account).values({
+        await usersRepository.createAccount(db, {
           id: accountId,
           accountId: existingUser.id,
           providerId: 'credential',
@@ -131,7 +124,7 @@ async function run() {
       const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
       const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-      await db.insert(user).values({
+      await usersRepository.insert(db, {
         id: userId,
         name,
         email,
@@ -141,7 +134,7 @@ async function run() {
         updatedAt: new Date(),
       });
 
-      await db.insert(account).values({
+      await usersRepository.createAccount(db, {
         id: accountId,
         accountId: userId,
         providerId: 'credential',

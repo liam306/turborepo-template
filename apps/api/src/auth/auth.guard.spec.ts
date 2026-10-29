@@ -1,4 +1,5 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { usersRepository } from '@repo/database';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 
@@ -7,7 +8,7 @@ describe('AuthGuard', () => {
   let authService: jest.Mocked<AuthService>;
   let mockDbService: any;
   let mockGetSession: jest.Mock;
-  let mockUserFindFirst: jest.Mock;
+  let mockUserFindById: jest.SpyInstance;
   const mockI18n = {
     t: jest.fn((key: string, opts?: any) => {
       if (key === 'common.errors.invalidSession')
@@ -22,20 +23,24 @@ describe('AuthGuard', () => {
 
   beforeEach(() => {
     mockGetSession = jest.fn();
-    mockUserFindFirst = jest.fn().mockResolvedValue({
+    mockUserFindById = jest.spyOn(usersRepository, 'findById').mockResolvedValue({
+      id: 'usr_123',
+      name: 'Nguyen Van A',
+      email: 'user@example.local',
+      emailVerified: true,
+      image: null,
+      theme: 'system',
+      locale: 'vi',
+      createdAt: new Date(),
+      updatedAt: new Date(),
       role: 'user',
       bannedAt: null,
       bannedUntil: null,
       bannedReason: null,
+      deletedAt: null,
     });
     mockDbService = {
-      db: {
-        query: {
-          user: {
-            findFirst: mockUserFindFirst,
-          },
-        },
-      },
+      db: {},
     };
     authService = {
       auth: {
@@ -129,7 +134,17 @@ describe('AuthGuard', () => {
       user: { id: 'usr_banned' },
       session: { id: 'sess_1' },
     });
-    mockUserFindFirst.mockResolvedValueOnce({
+    mockUserFindById.mockResolvedValueOnce({
+      id: 'usr_banned',
+      name: 'Banned User',
+      email: 'banned@example.com',
+      emailVerified: true,
+      image: null,
+      theme: 'system',
+      locale: 'vi',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
       role: 'user',
       bannedAt: new Date(),
       bannedUntil: null,

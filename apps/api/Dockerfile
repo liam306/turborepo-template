@@ -13,12 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable \
+    # renovate: datasource=npm depName=pnpm
     && corepack prepare pnpm@11.6.0 --activate
 
 # ============================================================================
 # Stage 2: Pruner - Isolate @repo/api workspace graph
 # ============================================================================
 FROM base AS pruner
+# renovate: datasource=npm depName=turbo
 RUN pnpm add -g turbo@2.11.7
 COPY . .
 RUN turbo prune @repo/api --docker

@@ -40,10 +40,10 @@ Plan to configure automated dependency updates via Renovate Bot tailored for the
   - In `renovate.json`: add `customManagers` regex configurations matching annotated Dockerfile version pins and grouping them with root `pnpm` and `turbo`.
 - **Rationale**: Keeps runtime container builds and CI actions synchronized whenever pnpm or Turbo versions are updated.
 
-- [ ] **Phase 2.1**: Update `.github/workflows/ci.yml` `pnpm/action-setup` step to omit hardcoded version.
-- [ ] **Phase 2.2**: Annotate `apps/api/Dockerfile` and `apps/web/Dockerfile` toolchain commands for custom regex matching.
-- [ ] **Phase 2.3**: Configure `customManagers` in `renovate.json` for Dockerfile `pnpm` and `turbo` pins.
-- [ ] **Phase 2.4**: Phase 2 verification, format check, and git commit.
+- [x] **Phase 2.1**: Update `.github/workflows/ci.yml` `pnpm/action-setup` step to omit hardcoded version.
+- [x] **Phase 2.2**: Annotate `apps/api/Dockerfile` and `apps/web/Dockerfile` toolchain commands for custom regex matching.
+- [x] **Phase 2.3**: Configure `customManagers` in `renovate.json` for Dockerfile `pnpm` and `turbo` pins.
+- [x] **Phase 2.4**: Phase 2 verification, format check, and git commit.
 
 ---
 

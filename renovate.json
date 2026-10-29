@@ -14,6 +14,18 @@
   "semanticCommitScope": "deps",
   "commitMessageTopic": "{{depName}}",
   "commitMessageExtra": "to {{newVersion}}",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Synchronize pnpm and turbo in Dockerfiles with root toolchain",
+      "managerFilePatterns": ["/(^|/)apps/(api|web)/Dockerfile$/"],
+      "matchStrings": [
+        "corepack prepare (?<depName>pnpm)@(?<currentValue>[^\\s]+) --activate",
+        "pnpm add -g (?<depName>turbo)@(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "npm"
+    }
+  ],
   "packageRules": [
     {
       "description": "Require manual approval via Dependency Dashboard for major updates",
@@ -130,6 +142,16 @@
         "prettier",
         "prettier-plugin-tailwindcss"
       ]
+    },
+    {
+      "description": "Group pnpm updates across root package.json and Dockerfiles",
+      "groupName": "pnpm",
+      "matchPackageNames": ["pnpm"]
+    },
+    {
+      "description": "Group Turbo updates across root package.json and Dockerfiles",
+      "groupName": "Turbo",
+      "matchPackageNames": ["turbo"]
     },
     {
       "description": "Group GitHub Actions workflow updates",

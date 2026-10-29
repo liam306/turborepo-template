@@ -9,12 +9,14 @@ WORKDIR /app
 
 RUN apk add --no-cache libc6-compat curl \
     && corepack enable \
+    # renovate: datasource=npm depName=pnpm
     && corepack prepare pnpm@11.6.0 --activate
 
 # ============================================================================
 # Stage 2: Pruner - Isolate @repo/web workspace graph
 # ============================================================================
 FROM base AS pruner
+# renovate: datasource=npm depName=turbo
 RUN pnpm add -g turbo@2.11.7
 COPY . .
 RUN turbo prune @repo/web --docker

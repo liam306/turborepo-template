@@ -95,6 +95,9 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
     - **Server & Async State**: Always use React Query (`useQuery`, `useMutation`). Do not manage server/network states (`loading`, `error`, `success`, `isPending`) via manual React `useState`. Derive UI states directly from query/mutation status.
     - **Persistent Client State**: Use Zustand stores with `persist` middleware for persistent client state (e.g., sidebar collapse, theme settings). Never call `localStorage` or `AsyncStorage` directly inside UI components.
     - **Temporary Local UI State**: Reserve React `useState` solely for isolated, non-persistent, non-async UI interactions (such as current input value in an unsubmitted field or modal visibility).
+17. **Search Inputs & Listing Pages Mandate**:
+    - **Debounced Search**: Every search input across web and mobile MUST use debounced inputs powered by `lodash/debounce` via `@repo/utils` and `useDebounceCallback`. Never trigger immediate API calls or filtering on raw keystroke events. Always prioritize `DebouncedSearchInput` (`apps/web/src/components/ui/debounced-search-input.tsx` on web and `apps/mobile/src/components/common/DebouncedSearchInput.tsx` on mobile).
+    - **Pagination & Page Size Selection**: All listing pages (tables, card grids, or item lists) MUST provide pagination controls and allow users to select the number of items displayed per page (e.g. 10, 20, 50, 100). Use `PaginationControls` component on both web and mobile.
 
 <!-- BEGIN:turborepo-agent-rules -->
 

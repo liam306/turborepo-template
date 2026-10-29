@@ -28,6 +28,9 @@ pnpm typecheck:mobile             # Run tsc --noEmit
 - **State Management & Storage**:
   - Server state and API mutations must go through React Query hooks (`src/hooks/queries/`). Never manage API loading, error, or success states with `useState`.
   - Client state and persistence stay in Zustand stores (`src/stores/`). Never call `AsyncStorage` directly inside UI components.
+- **Search & Pagination Mandate**:
+  - All search inputs MUST use `DebouncedSearchInput` from `@/components/common/DebouncedSearchInput` (or `useDebounceCallback` from `@/hooks/useDebounceCallback`) to debounce text changes. Never trigger API queries directly per keystroke.
+  - All listing views (flat lists, item feeds) MUST provide pagination controls and allow selecting the items-per-page limit using `PaginationControls` from `@/components/common/PaginationControls`.
 - **Internationalization (i18n)**:
   - `useTranslation()` from `react-i18next`. Update `src/locales/en.json` and `src/locales/vi.json`.
   - API requests must include `x-lang: <locale>` header.

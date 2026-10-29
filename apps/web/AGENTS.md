@@ -41,6 +41,9 @@ pnpm typecheck
 - **State Management & Storage**:
   - Server state and API interactions must always go through React Query hooks (`src/hooks/queries/`). Never manage API loading, error, or success states with `useState`.
   - Persistent client-side state must be managed with Zustand stores (`src/stores/`) using `persist`. Never read or write `localStorage` directly inside UI components.
+- **Search & Pagination Mandate**:
+  - All search inputs MUST use `DebouncedSearchInput` from `@/components/ui/debounced-search-input` (or `useDebounceCallback` from `@/hooks/useDebounceCallback`) to debounce keystroke triggers before dispatching network requests.
+  - All listing views (data tables, card lists) MUST include pagination with page size options using `PaginationControls` from `@/components/ui/pagination-controls`.
 - **Shared Packages**:
   - `@repo/core`: Pure domain business logic.
   - `@repo/types`: Shared interfaces and domain models.

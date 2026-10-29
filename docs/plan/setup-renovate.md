@@ -72,10 +72,10 @@ Plan to configure automated dependency updates via Renovate Bot tailored for the
   - Enable `vulnerabilityAlerts` configuration to bypass schedule cooldowns for security vulnerabilities.
 - **Rationale**: Prunes stale transitive resolutions periodically and ensures critical security patches are presented promptly.
 
-- [ ] **Phase 4.1**: Add `lockFileMaintenance` section to `renovate.json`.
-- [ ] **Phase 4.2**: Configure `vulnerabilityAlerts` overrides in `renovate.json`.
-- [ ] **Phase 4.3**: Validate updated configuration via `renovate-config-validator --strict`.
-- [ ] **Phase 4.4**: Phase 4 verification, format check, and git commit.
+- [x] **Phase 4.1**: Add `lockFileMaintenance` section to `renovate.json`.
+- [x] **Phase 4.2**: Configure `vulnerabilityAlerts` overrides in `renovate.json`.
+- [x] **Phase 4.3**: Validate updated configuration via `renovate-config-validator --strict`.
+- [x] **Phase 4.4**: Phase 4 verification, format check, and git commit.
 
 ---
 

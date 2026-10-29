@@ -14,6 +14,18 @@
   "semanticCommitScope": "deps",
   "commitMessageTopic": "{{depName}}",
   "commitMessageExtra": "to {{newVersion}}",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 7am on the first day of the month"],
+    "automerge": false
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "dependencyDashboardApproval": false,
+    "minimumReleaseAge": null,
+    "commitMessagePrefix": "fix(deps): [security]"
+  },
   "customManagers": [
     {
       "customType": "regex",

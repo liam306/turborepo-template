@@ -28,9 +28,9 @@ Plan to port modular AST architecture checking and inter-file translation analys
 
 ## Phase 3: Tooling & Script Verification Configuration
 
-- [ ] **Phase 3.1**: Update `typecheck:scripts` in `package.json`
-- [ ] **Phase 3.2**: Run script typecheck & lint verification
-- [ ] **Phase 3.3**: Phase 3 verification and git commit
+- [x] **Phase 3.1**: Update `typecheck:scripts` in `package.json`
+- [x] **Phase 3.2**: Run script typecheck & lint verification
+- [x] **Phase 3.3**: Phase 3 verification and git commit
 
 ---
 

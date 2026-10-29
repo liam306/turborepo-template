@@ -58,7 +58,7 @@
     "check:hardcoded": "node scripts/check-hardcoded-text.mjs",
     "test:scripts": "node --test scripts/tests/*.test.mjs",
     "lint:scripts": "eslint --config scripts/eslint.config.mjs scripts/**/*.mjs",
-    "typecheck:scripts": "tsc --noEmit --allowJs --checkJs --module nodenext --target es2022 scripts/check-hardcoded-text.mjs scripts/lib/*.mjs",
+    "typecheck:scripts": "tsc --noEmit --allowJs --checkJs --module nodenext --target es2022 scripts/check-hardcoded-text.mjs scripts/check-codebase-rules.mjs scripts/lib/*.mjs scripts/lib/codebase-rules/*.mjs",
     "check:i18n:api": "node scripts/check-i18n.mjs api",
     "check:i18n:web": "node scripts/check-i18n.mjs web",
     "check:i18n:mobile": "node scripts/check-i18n.mjs mobile"

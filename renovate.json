@@ -1,0 +1,145 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Ho_Chi_Minh",
+  "schedule": ["before 7am on monday"],
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dependency Dashboard",
+  "minimumReleaseAge": "3 days",
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "rangeStrategy": "bump",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "packageRules": [
+    {
+      "description": "Require manual approval via Dependency Dashboard for major updates",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Require manual approval for Drizzle minor updates due to 0.x breaking changes",
+      "matchPackageNames": ["drizzle-orm", "drizzle-kit"],
+      "matchUpdateTypes": ["minor"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Require manual approval for Expo SDK version bump",
+      "matchPackageNames": ["expo"],
+      "matchFileNames": ["apps/mobile/**"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Disable automated updates for Expo SDK-bound packages; upgrade via expo install --fix",
+      "matchFileNames": ["apps/mobile/**"],
+      "matchPackageNames": [
+        "expo-*",
+        "@expo/*",
+        "react-native",
+        "react-native-gesture-handler",
+        "react-native-reanimated",
+        "react-native-safe-area-context",
+        "react-native-screens",
+        "react-native-svg",
+        "react-native-web",
+        "react-native-worklets",
+        "@react-native-async-storage/async-storage",
+        "@sentry/react-native",
+        "eslint-config-expo"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Disable automated React updates in apps/mobile; managed by Expo SDK",
+      "matchFileNames": ["apps/mobile/**"],
+      "matchPackageNames": ["react", "react-dom", "@types/react"],
+      "enabled": false
+    },
+    {
+      "description": "Group Next.js and its ESLint configuration",
+      "groupName": "Next.js",
+      "matchPackageNames": ["next", "eslint-config-next"]
+    },
+    {
+      "description": "Group React web dependencies",
+      "groupName": "React (Web)",
+      "matchFileNames": ["apps/web/**"],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    },
+    {
+      "description": "Group NestJS core packages",
+      "groupName": "NestJS core",
+      "matchPackageNames": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/platform-express",
+        "@nestjs/testing",
+        "@nestjs/config",
+        "@nestjs/throttler",
+        "@nestjs/swagger"
+      ]
+    },
+    {
+      "description": "Group NestJS tooling",
+      "groupName": "NestJS tooling",
+      "matchPackageNames": ["@nestjs/cli", "@nestjs/schematics"]
+    },
+    {
+      "description": "Group Better Auth across workspaces",
+      "groupName": "Better Auth",
+      "matchPackageNames": ["better-auth", "@better-auth/expo"]
+    },
+    {
+      "description": "Group Drizzle ORM and Drizzle Kit",
+      "groupName": "Drizzle ORM",
+      "matchPackageNames": ["drizzle-orm", "drizzle-kit"]
+    },
+    {
+      "description": "Group AWS SDK packages",
+      "groupName": "AWS SDK",
+      "matchPackageNames": ["@aws-sdk/**"]
+    },
+    {
+      "description": "Group Bull Board packages",
+      "groupName": "Bull Board",
+      "matchPackageNames": ["@bull-board/**"]
+    },
+    {
+      "description": "Group Radix UI primitives",
+      "groupName": "Radix UI",
+      "matchPackageNames": ["@radix-ui/**"]
+    },
+    {
+      "description": "Group linting, formatting, and TypeScript dev tooling in root",
+      "groupName": "Toolchain",
+      "matchFileNames": ["package.json"],
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/js",
+        "typescript",
+        "typescript-eslint",
+        "globals",
+        "prettier",
+        "prettier-plugin-tailwindcss"
+      ]
+    },
+    {
+      "description": "Group GitHub Actions workflow updates",
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Constrain @types/node to Node 22 LTS matching runtime engines",
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": "^22.0.0"
+    }
+  ]
+}

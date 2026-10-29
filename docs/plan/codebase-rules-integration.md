@@ -19,10 +19,10 @@ Plan to port modular AST architecture checking and inter-file translation analys
 
 ## Phase 2: Inter-File Translation Analysis
 
-- [ ] **Phase 2.1**: Write failing test `scripts/tests/translation-project.test.mjs` (Red)
-- [ ] **Phase 2.2**: Implement `scripts/lib/translation-project.mjs` (Green)
-- [ ] **Phase 2.3**: Integrate `analyzeProjectTranslations` into `scripts/check-i18n.mjs`
-- [ ] **Phase 2.4**: Phase 2 verification and git commit
+- [x] **Phase 2.1**: Write failing test `scripts/tests/translation-project.test.mjs` (Red)
+- [x] **Phase 2.2**: Implement `scripts/lib/translation-project.mjs` (Green)
+- [x] **Phase 2.3**: Integrate `analyzeProjectTranslations` into `scripts/check-i18n.mjs`
+- [x] **Phase 2.4**: Phase 2 verification and git commit
 
 ---
 

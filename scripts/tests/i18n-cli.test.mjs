@@ -19,7 +19,11 @@ function fixture(run) {
       path.join(root, 'scripts/check-i18n.mjs'),
       path.join(dir, 'scripts/check-i18n.mjs'),
     );
-    for (const name of ['source-audit.mjs', 'translation-usage.mjs'])
+    for (const name of [
+      'source-audit.mjs',
+      'translation-usage.mjs',
+      'translation-project.mjs',
+    ])
       fs.copyFileSync(
         path.join(root, 'scripts/lib', name),
         path.join(dir, 'scripts/lib', name),

@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { translationUsage } from './lib/translation-usage.mjs';
+import { analyzeProjectTranslations } from './lib/translation-project.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -387,16 +388,19 @@ function checkApp(appName) {
   let fullConcatenatedCode = '';
 
   for (const filePath of sourceFiles) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    fullConcatenatedCode += '\n' + content;
-    const relPath = path.relative(ROOT_DIR, filePath);
-    const usage = translationUsage(filePath, content, appName);
-    codeOccurrences.push(
-      ...usage.occurrences.map((item) => ({ ...item, file: relPath })),
-    );
-    for (const prefix of usage.dynamicPrefixes) dynamicPrefixes.add(prefix);
-    unresolvedCalls += usage.unresolved.length;
+    fullConcatenatedCode += '\n' + fs.readFileSync(filePath, 'utf8');
   }
+
+  const projectAnalysis = analyzeProjectTranslations({
+    rootDir: ROOT_DIR,
+    appName,
+    srcDir,
+    sourceFiles,
+  });
+  codeOccurrences.push(...projectAnalysis.occurrences);
+  for (const prefix of projectAnalysis.dynamicPrefixes)
+    dynamicPrefixes.add(prefix);
+  unresolvedCalls += projectAnalysis.unresolved.length;
 
   // Filter missing keys: keys invoked in code that don't exist in allJsonKeys
   const missingKeysMap = new Map(); // key -> [{ file, line }]

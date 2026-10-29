@@ -7,6 +7,7 @@ import { ThemeProvider, THEME_COOKIE_NAME } from '@/context/ThemeContext';
 import { Toaster } from '@/components/Toaster';
 import { ReactQueryProvider } from '@/providers/react-query-provider';
 import { PostHogProvider } from '@/providers/posthog-provider';
+import { cn } from '@/lib/utils';
 import type { ThemeMode } from '@repo/types';
 
 export const metadata: Metadata = {
@@ -54,7 +55,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={theme === 'dark' ? 'dark' : ''}
+      className={cn(theme === 'dark' && 'dark')}
       suppressHydrationWarning
     >
       <head>

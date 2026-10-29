@@ -10,7 +10,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat curl \
     && corepack enable \
     # renovate: datasource=npm depName=pnpm
-    && corepack prepare pnpm@11.6.0 --activate
+    && corepack prepare pnpm@12.15.0 --activate
 
 # ============================================================================
 # Stage 2: Pruner - Isolate @repo/web workspace graph

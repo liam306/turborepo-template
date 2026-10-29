@@ -32,7 +32,7 @@ starter-monorepo/
 ### 1. Prerequisites
 
 - Node.js >= 22.12.0
-- pnpm >= 11.6.0
+- pnpm >= 12.15.0
 - Docker & Docker Compose
 
 ### 2. Setup Environment

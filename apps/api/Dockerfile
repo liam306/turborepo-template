@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable \
     # renovate: datasource=npm depName=pnpm
-    && corepack prepare pnpm@11.6.0 --activate
+    && corepack prepare pnpm@12.15.0 --activate
 
 # ============================================================================
 # Stage 2: Pruner - Isolate @repo/api workspace graph

@@ -95,7 +95,7 @@ Both `apps/api/Dockerfile` and `apps/web/Dockerfile` pin the `pnpm` version for 
 
 ```dockerfile
 # renovate: datasource=npm depName=pnpm
-&& corepack prepare pnpm@11.6.0 --activate
+&& corepack prepare pnpm@12.15.0 --activate
 
 # renovate: datasource=npm depName=turbo
 RUN pnpm add -g turbo@2.11.7

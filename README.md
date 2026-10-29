@@ -135,10 +135,12 @@ pnpm install
 - [x] Full Internationalization (i18n): English and Vietnamese across API, Web, and Mobile
 - [x] Design Systems: shadcn/ui on web, NativeWind on mobile
 - [x] Compliance & Quality: CI audits for hardcoded strings, i18n key parity, and clean architecture boundaries (no Git hooks installed by default)
+- [x] Automated Dependency Updates: Renovate Bot configuration with monorepo grouping, Expo SDK guardrails, and Dockerfile toolchain synchronization (see [docs/renovate.md](docs/renovate.md))
 
 ## Template Behavior and Verification
 
 - `pnpm build` builds API and web. Shared packages expose TypeScript source; mobile builds use the separate EAS commands.
+- Automated dependency updates are managed via Renovate Bot. Review [docs/renovate.md](docs/renovate.md) for GitHub App installation, update schedules, and Expo SDK upgrade rules.
 - Account deletion is a soft delete: sessions are revoked and account records retained. Administrators can restore access; a removed avatar is not restored automatically.
 - Data-reset hooks remain as extension points. Their UI actions are hidden by default (`enableDataReset=false`); implement domain cleanup before enabling them.
 - Production requires a non-placeholder `BETTER_AUTH_SECRET` of at least 32 characters and a custom `DOCS_PASSWORD`, even when Swagger is disabled, because Bull Board remains protected.

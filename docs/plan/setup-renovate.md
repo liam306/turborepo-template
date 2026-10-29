@@ -89,9 +89,9 @@ Plan to configure automated dependency updates via Renovate Bot tailored for the
   - Update `README.md` referencing Renovate documentation under dependencies and maintenance section.
 - **Rationale**: Informs engineers cloning the template on how Renovate operates and how to maintain packages safely.
 
-- [ ] **Phase 5.1**: Author `docs/renovate.md` in English with operational guidelines.
-- [ ] **Phase 5.2**: Update `README.md` to reference Renovate workflow.
-- [ ] **Phase 5.3**: Phase 5 verification, format check, and git commit.
+- [x] **Phase 5.1**: Author `docs/renovate.md` in English with operational guidelines.
+- [x] **Phase 5.2**: Update `README.md` to reference Renovate workflow.
+- [x] **Phase 5.3**: Phase 5 verification, format check, and git commit.
 
 ---
 

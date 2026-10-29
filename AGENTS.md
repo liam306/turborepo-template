@@ -55,6 +55,7 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
    - On web frontend, always reuse and prioritize shadcn/ui components from `@/components/ui/*`.
 9. **Git Commit Guidelines & Automatic Commit**:
    - Use Conventional Commits (`feat(...)`, `fix(...)`, `refactor(...)`, `test(...)`, `chore(...)`).
+   - **Detailed Message Body**: Commit messages must include a clear subject line and a detailed body with bullet points summarizing the specific modifications, touched areas, and rationale.
    - Automatically commit changes upon completing a task once all verification steps (formatting, tests, typecheck, lint) pass without errors.
 10. **System-Wide Soft Delete Standards & Repository Pattern**:
     - Never execute hard SQL `.delete(...)` on primary domain entities (`user`).
@@ -90,6 +91,10 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
     - Ask the user for write permission before creating or updating plan files.
     - Each phase should list: files to modify, specific changes, and rationale.
     - Mark checklist items with `- [ ]` (pending) or `- [x]` (done) and update them as work progresses.
+16. **Frontend State Management & Storage Mandate**:
+    - **Server & Async State**: Always use React Query (`useQuery`, `useMutation`). Do not manage server/network states (`loading`, `error`, `success`, `isPending`) via manual React `useState`. Derive UI states directly from query/mutation status.
+    - **Persistent Client State**: Use Zustand stores with `persist` middleware for persistent client state (e.g., sidebar collapse, theme settings). Never call `localStorage` or `AsyncStorage` directly inside UI components.
+    - **Temporary Local UI State**: Reserve React `useState` solely for isolated, non-persistent, non-async UI interactions (such as current input value in an unsubmitted field or modal visibility).
 
 <!-- BEGIN:turborepo-agent-rules -->
 

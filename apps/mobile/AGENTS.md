@@ -25,7 +25,9 @@ pnpm typecheck:mobile             # Run tsc --noEmit
   - Modular sub-components under `src/components/`.
   - Screens in `src/app/` stay thin.
   - Network logic in `src/services/`.
-  - State in Zustand stores (`src/stores/`).
+- **State Management & Storage**:
+  - Server state and API mutations must go through React Query hooks (`src/hooks/queries/`). Never manage API loading, error, or success states with `useState`.
+  - Client state and persistence stay in Zustand stores (`src/stores/`). Never call `AsyncStorage` directly inside UI components.
 - **Internationalization (i18n)**:
   - `useTranslation()` from `react-i18next`. Update `src/locales/en.json` and `src/locales/vi.json`.
   - API requests must include `x-lang: <locale>` header.

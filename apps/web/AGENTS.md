@@ -38,6 +38,9 @@ pnpm typecheck
 - **API Requests & Locale Forwarding**:
   - All API calls in `src/lib/api.ts` must forward user active locale via header (`x-lang` / `Accept-Language`).
 - **Auth Client**: Better Auth client initialized in `src/lib/auth-client.ts`.
+- **State Management & Storage**:
+  - Server state and API interactions must always go through React Query hooks (`src/hooks/queries/`). Never manage API loading, error, or success states with `useState`.
+  - Persistent client-side state must be managed with Zustand stores (`src/stores/`) using `persist`. Never read or write `localStorage` directly inside UI components.
 - **Shared Packages**:
   - `@repo/core`: Pure domain business logic.
   - `@repo/types`: Shared interfaces and domain models.

@@ -61,6 +61,12 @@ example
 *-audit-report.json
 *-report.json
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # generated native folders
 apps/mobile/ios/
 apps/mobile/android/

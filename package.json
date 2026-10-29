@@ -26,6 +26,7 @@
     "lint:web": "pnpm --filter @repo/web lint",
     "typecheck:web": "pnpm --filter @repo/web typecheck",
     "test:web": "pnpm --filter @repo/web test",
+    "test:e2e:web": "pnpm --filter @repo/web test:e2e",
     "dev:api": "pnpm --filter @repo/api dev",
     "build:api": "pnpm --filter @repo/api build",
     "start:api": "pnpm --filter @repo/api start",

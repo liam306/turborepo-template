@@ -211,12 +211,14 @@ describe('UsersService', () => {
 
       jest.spyOn(usersRepository, 'findById').mockResolvedValue(existingUser);
       jest.spyOn(usersRepository, 'findAccountsByUserId').mockResolvedValue([]);
-      const updateSpy = jest.spyOn(usersRepository, 'update').mockResolvedValue({
-        ...existingUser,
-        name: 'New Name',
-        theme: 'dark',
-        locale: 'en',
-      });
+      const updateSpy = jest
+        .spyOn(usersRepository, 'update')
+        .mockResolvedValue({
+          ...existingUser,
+          name: 'New Name',
+          theme: 'dark',
+          locale: 'en',
+        });
 
       const updated = await service.updateProfile('u-1', {
         name: 'New Name',
@@ -383,30 +385,32 @@ describe('UsersService', () => {
 
   describe('getSessions', () => {
     it('returns active sessions with device info and marks current session', async () => {
-      jest.spyOn(usersRepository, 'findActiveSessionsByUserId').mockResolvedValue([
-        {
-          id: 's-1',
-          userId: 'u-1',
-          token: 'tok-1',
-          ipAddress: '127.0.0.1',
-          userAgent:
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          createdAt: new Date('2026-03-01T10:00:00.000Z'),
-          updatedAt: new Date('2026-03-01T10:00:00.000Z'),
-          expiresAt: new Date('2026-04-01T10:00:00.000Z'),
-        },
-        {
-          id: 's-2',
-          userId: 'u-1',
-          token: 'tok-2',
-          ipAddress: '192.168.1.1',
-          userAgent:
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1',
-          createdAt: new Date('2026-03-02T10:00:00.000Z'),
-          updatedAt: new Date('2026-03-02T10:00:00.000Z'),
-          expiresAt: new Date('2026-04-02T10:00:00.000Z'),
-        },
-      ]);
+      jest
+        .spyOn(usersRepository, 'findActiveSessionsByUserId')
+        .mockResolvedValue([
+          {
+            id: 's-1',
+            userId: 'u-1',
+            token: 'tok-1',
+            ipAddress: '127.0.0.1',
+            userAgent:
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            createdAt: new Date('2026-03-01T10:00:00.000Z'),
+            updatedAt: new Date('2026-03-01T10:00:00.000Z'),
+            expiresAt: new Date('2026-04-01T10:00:00.000Z'),
+          },
+          {
+            id: 's-2',
+            userId: 'u-1',
+            token: 'tok-2',
+            ipAddress: '192.168.1.1',
+            userAgent:
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1',
+            createdAt: new Date('2026-03-02T10:00:00.000Z'),
+            updatedAt: new Date('2026-03-02T10:00:00.000Z'),
+            expiresAt: new Date('2026-04-02T10:00:00.000Z'),
+          },
+        ]);
 
       const result = await service.getSessions('u-1', 's-1');
 
@@ -427,7 +431,9 @@ describe('UsersService', () => {
 
   describe('revokeSession', () => {
     it('throws NotFoundException if session does not exist', async () => {
-      jest.spyOn(usersRepository, 'findSessionByIdAndUserId').mockResolvedValue(null);
+      jest
+        .spyOn(usersRepository, 'findSessionByIdAndUserId')
+        .mockResolvedValue(null);
 
       await expect(
         service.revokeSession('u-1', 's-nonexistent'),
@@ -435,16 +441,18 @@ describe('UsersService', () => {
     });
 
     it('deletes session successfully', async () => {
-      jest.spyOn(usersRepository, 'findSessionByIdAndUserId').mockResolvedValue({
-        id: 's-1',
-        userId: 'u-1',
-        token: 'tok-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        expiresAt: new Date(),
-        ipAddress: null,
-        userAgent: null,
-      });
+      jest
+        .spyOn(usersRepository, 'findSessionByIdAndUserId')
+        .mockResolvedValue({
+          id: 's-1',
+          userId: 'u-1',
+          token: 'tok-1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          expiresAt: new Date(),
+          ipAddress: null,
+          userAgent: null,
+        });
       const deleteSpy = jest
         .spyOn(usersRepository, 'deleteSession')
         .mockResolvedValue(undefined);

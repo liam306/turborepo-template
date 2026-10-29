@@ -23,22 +23,24 @@ describe('AuthGuard', () => {
 
   beforeEach(() => {
     mockGetSession = jest.fn();
-    mockUserFindById = jest.spyOn(usersRepository, 'findById').mockResolvedValue({
-      id: 'usr_123',
-      name: 'Nguyen Van A',
-      email: 'user@example.local',
-      emailVerified: true,
-      image: null,
-      theme: 'system',
-      locale: 'vi',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      role: 'user',
-      bannedAt: null,
-      bannedUntil: null,
-      bannedReason: null,
-      deletedAt: null,
-    });
+    mockUserFindById = jest
+      .spyOn(usersRepository, 'findById')
+      .mockResolvedValue({
+        id: 'usr_123',
+        name: 'Nguyen Van A',
+        email: 'user@example.local',
+        emailVerified: true,
+        image: null,
+        theme: 'system',
+        locale: 'vi',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        role: 'user',
+        bannedAt: null,
+        bannedUntil: null,
+        bannedReason: null,
+        deletedAt: null,
+      });
     mockDbService = {
       db: {},
     };

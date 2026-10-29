@@ -50,11 +50,9 @@ test('read filter combines caller conditions with the active-row policy', () => 
     repositoryReadFilter(user, undefined, { includeDeleted: true }),
     undefined,
   );
-  const deletedOnly = repositoryReadFilter(
-    user,
-    isNotNull(user.deletedAt),
-    { includeDeleted: true },
-  );
+  const deletedOnly = repositoryReadFilter(user, isNotNull(user.deletedAt), {
+    includeDeleted: true,
+  });
   assert.ok(deletedOnly);
   assert.doesNotMatch(dialect.sqlToQuery(deletedOnly).sql, / is null/);
   assert.match(dialect.sqlToQuery(deletedOnly).sql, / is not null/);
@@ -129,23 +127,28 @@ test('insert, update, softDelete, and restore handle timestamps and return rows'
   assert.equal(inserted, record);
 
   const updateClient = queryDouble([record]);
-  const updated = await base.update(updateClient.db, 'usr_123', { name: 'Updated' });
+  const updated = await base.update(updateClient.db, 'usr_123', {
+    name: 'Updated',
+  });
   assert.equal(updated, record);
-  const updateSet = updateClient.calls.find((call) => call.method === 'set')?.args[0] as Record<string, unknown>;
+  const updateSet = updateClient.calls.find((call) => call.method === 'set')
+    ?.args[0] as Record<string, unknown>;
   assert.equal(updateSet.name, 'Updated');
   assert.ok(updateSet.updatedAt instanceof Date);
 
   const deleteClient = queryDouble([record]);
   const deleted = await base.softDelete(deleteClient.db, 'usr_123');
   assert.equal(deleted, record);
-  const deleteSet = deleteClient.calls.find((call) => call.method === 'set')?.args[0] as Record<string, unknown>;
+  const deleteSet = deleteClient.calls.find((call) => call.method === 'set')
+    ?.args[0] as Record<string, unknown>;
   assert.ok(deleteSet.deletedAt instanceof Date);
   assert.equal(deleteSet.deletedAt, deleteSet.updatedAt);
 
   const restoreClient = queryDouble([record]);
   const restored = await base.restore(restoreClient.db, 'usr_123');
   assert.equal(restored, record);
-  const restoreSet = restoreClient.calls.find((call) => call.method === 'set')?.args[0] as Record<string, unknown>;
+  const restoreSet = restoreClient.calls.find((call) => call.method === 'set')
+    ?.args[0] as Record<string, unknown>;
   assert.equal(restoreSet.deletedAt, null);
   assert.ok(restoreSet.updatedAt instanceof Date);
 });

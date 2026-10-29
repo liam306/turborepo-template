@@ -45,7 +45,10 @@ test('usersRepository exposes base soft delete methods on user table', async () 
 
 test('usersRepository.findByEmail finds active user by normalized email', async () => {
   const client = queryDouble([{ id: 'usr_1', email: 'test@example.com' }]);
-  const found = await usersRepository.findByEmail(client.db, 'test@example.com');
+  const found = await usersRepository.findByEmail(
+    client.db,
+    'test@example.com',
+  );
   assert.deepEqual(found, { id: 'usr_1', email: 'test@example.com' });
   assert.equal(
     client.calls.find((call) => call.method === 'from')?.args[0],
@@ -73,7 +76,11 @@ test('usersRepository.findFirstAdmin finds admin user', async () => {
 
 test('usersRepository.findSessionByIdAndUserId queries matching session', async () => {
   const client = queryDouble([{ id: 'sess_1', userId: 'usr_1' }]);
-  const found = await usersRepository.findSessionByIdAndUserId(client.db, 'sess_1', 'usr_1');
+  const found = await usersRepository.findSessionByIdAndUserId(
+    client.db,
+    'sess_1',
+    'usr_1',
+  );
   assert.deepEqual(found, { id: 'sess_1', userId: 'usr_1' });
 });
 
@@ -85,4 +92,3 @@ test('usersRepository.deleteSession deletes specified session', async () => {
     undefined,
   );
 });
-

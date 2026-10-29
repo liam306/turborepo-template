@@ -78,10 +78,7 @@ export const usersRepository = {
     db: DbOrTx,
     userId: string,
   ): Promise<AccountRecord[]> {
-    return await db
-      .select()
-      .from(account)
-      .where(eq(account.userId, userId));
+    return await db.select().from(account).where(eq(account.userId, userId));
   },
 
   async findAccountByProvider(
@@ -92,7 +89,9 @@ export const usersRepository = {
     const [row] = await db
       .select()
       .from(account)
-      .where(and(eq(account.userId, userId), eq(account.providerId, providerId)))
+      .where(
+        and(eq(account.userId, userId), eq(account.providerId, providerId)),
+      )
       .limit(1);
     return row ?? null;
   },
@@ -121,10 +120,7 @@ export const usersRepository = {
     return row ?? null;
   },
 
-  async deleteSession(
-    db: DbOrTx,
-    sessionId: string,
-  ): Promise<void> {
+  async deleteSession(db: DbOrTx, sessionId: string): Promise<void> {
     await db.delete(session).where(eq(session.id, sessionId));
   },
 
@@ -144,10 +140,7 @@ export const usersRepository = {
     }
   },
 
-  async deleteSessionsByUserId(
-    db: DbOrTx,
-    userId: string,
-  ): Promise<void> {
+  async deleteSessionsByUserId(db: DbOrTx, userId: string): Promise<void> {
     await db.delete(session).where(eq(session.userId, userId));
   },
 
@@ -173,10 +166,7 @@ export const usersRepository = {
     return updated ?? null;
   },
 
-  async deleteAccountsByUserId(
-    db: DbOrTx,
-    userId: string,
-  ): Promise<void> {
+  async deleteAccountsByUserId(db: DbOrTx, userId: string): Promise<void> {
     await db.delete(account).where(eq(account.userId, userId));
   },
 };

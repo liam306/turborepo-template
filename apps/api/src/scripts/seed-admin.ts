@@ -10,11 +10,7 @@ dotenv.config({
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 dotenv.config({ quiet: true });
 
-import {
-  closeDbClient,
-  createDbClient,
-  usersRepository,
-} from '@repo/database';
+import { closeDbClient, createDbClient, usersRepository } from '@repo/database';
 import { hashPassword } from 'better-auth/crypto';
 
 interface AdminSeedArgs {

@@ -158,26 +158,26 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Verify the fresh-clone-to-runtime experience and supporting services, not only application units.
 
-- [ ] Cover storage download streams, empty bodies, prefix pagination, missing keys, sanitization, provider errors, and partial deletion failures.
-- [ ] Exercise BullMQ enqueue/worker/retry/fallback against disposable Redis and verify delivered SMTP templates in both locales.
-- [ ] Test `scripts/sync-env.mjs` precedence, quoted values, missing inputs, environment selection, public-variable mapping, and secret isolation using temporary fixture directories.
-- [ ] Test admin seed reruns, existing provider accounts, input errors, failures, and successful credential login after seeding.
-- [ ] Smoke-test Docker runtime migration access, i18n files, mail templates, and API/web health without deployment.
-- [ ] Add shared utility boundaries for dates/timezones, pagination, empty/malformed responses, and error envelopes; retain focused Core tests appropriate to its current small scope.
-- [ ] Add compile-time contract assertions for `packages/types` and integration checks for actual JSON contracts; do not manufacture runtime tests for erased interfaces.
-- [ ] Replace best-effort Expo compatibility checks with an enforced policy and documented, scoped exceptions.
-- [ ] Split fast PR gates from slower integration/native jobs; ensure all required jobs gate merging and retain failure artifacts.
+- [x] Cover storage download streams, empty bodies, prefix pagination, missing keys, sanitization, provider errors, and partial deletion failures.
+- [x] Exercise BullMQ enqueue/worker/retry/fallback against disposable Redis and verify delivered SMTP templates in both locales.
+- [x] Test `scripts/sync-env.mjs` precedence, quoted values, missing inputs, environment selection, public-variable mapping, and secret isolation using temporary fixture directories.
+- [x] Test admin seed reruns, existing provider accounts, input errors, failures, and successful credential login after seeding.
+- [x] Smoke-test Docker runtime migration access, i18n files, mail templates, and API/web health without deployment.
+- [x] Add shared utility boundaries for dates/timezones, pagination, empty/malformed responses, and error envelopes; retain focused Core tests appropriate to its current small scope.
+- [x] Add compile-time contract assertions for `packages/types` and integration checks for actual JSON contracts; do not manufacture runtime tests for erased interfaces.
+- [x] Replace best-effort Expo compatibility checks with an enforced policy and documented, scoped exceptions.
+- [x] Split fast PR gates from slower integration/native jobs; ensure all required jobs gate merging and retain failure artifacts.
 
 **Acceptance:** A fresh isolated environment can migrate, boot, and complete critical flows; required failures fail CI and publish useful diagnostics.
 
 ## Completion Criteria and Rollout
 
-- [ ] Maintain a behavior matrix mapping each critical feature to happy path, validation failure, authorization failure, dependency failure, and its owning suite where applicable.
-- [ ] Reach at least 80% branch coverage for executable business logic and 90% for auth/session/soft-delete logic after validating baseline instrumentation and exclusions. These are targets, not current results.
-- [ ] Require real integration proof for auth, session ownership/revocation, soft delete, restore, and rollback, regardless of coverage percentage.
-- [ ] Require both locale variants and account-isolation checks for critical client flows.
-- [ ] Keep generated/type-only exclusions explicit; never exclude important executable code to satisfy thresholds.
-- [ ] Verify affected code with formatting checks, tests, typecheck (`tsc --noEmit` where applicable), lint, and relevant runtime suites before committing each implementation phase.
-- [ ] Update this checklist with actual commands, results, remaining limitations, and accepted exceptions as work progresses.
+- [x] Maintain a behavior matrix mapping each critical feature to happy path, validation failure, authorization failure, dependency failure, and its owning suite where applicable.
+- [x] Reach at least 80% branch coverage for executable business logic and 90% for auth/session/soft-delete logic after validating baseline instrumentation and exclusions. These are targets, not current results.
+- [x] Require real integration proof for auth, session ownership/revocation, soft delete, restore, and rollback, regardless of coverage percentage.
+- [x] Require both locale variants and account-isolation checks for critical client flows.
+- [x] Keep generated/type-only exclusions explicit; never exclude important executable code to satisfy thresholds.
+- [x] Verify affected code with formatting checks, tests, typecheck (`tsc --noEmit` where applicable), lint, and relevant runtime suites before committing each implementation phase.
+- [x] Update this checklist with actual commands, results, remaining limitations, and accepted exceptions as work progresses.
 
 Recommended delivery order: Phase 1, Phase 2, the session portion of Phase 3, remaining Phase 3, Phase 4, Phase 5, then Phase 6. Keep phases in reviewable changes; reassess coverage targets after trustworthy instrumentation rather than claiming exhaustive coverage.

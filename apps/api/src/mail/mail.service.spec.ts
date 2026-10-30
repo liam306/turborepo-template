@@ -161,10 +161,26 @@ describe('MailService', () => {
         }),
       } as unknown as jest.Mocked<ConfigService>;
 
+      const mockI18n = {
+        t: jest.fn((key: string, options?: { lang?: string }) => {
+          const isVi = options?.lang === 'vi';
+          if (key === 'common.mail.otpSubject')
+            return isVi ? 'Mã xác thực OTP' : 'Verification OTP Code';
+          if (key === 'common.mail.otpGreeting')
+            return isVi ? 'Xin chào,' : 'Hello,';
+          if (key === 'common.mail.otpHeading')
+            return isVi
+              ? 'Mã xác thực (OTP) của bạn là:'
+              : 'Your verification code (OTP) is:';
+          return key;
+        }),
+      } as any;
+
       prodService = new MailService(
         prodConfigService,
         mockMailerService,
         undefined,
+        mockI18n,
       );
     });
 
@@ -220,6 +236,32 @@ describe('MailService', () => {
           context: expect.objectContaining({
             otp: '654321',
             layout: 'main',
+          }),
+        }),
+      );
+    });
+
+    it('sets locale-specific subject and context for English and Vietnamese', async () => {
+      // English
+      await prodService.sendDirectOtp('user@example.com', '111111', 'en');
+      expect(mockMailerService.sendMail).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          subject: 'Verification OTP Code',
+          context: expect.objectContaining({
+            greeting: 'Hello,',
+            heading: 'Your verification code (OTP) is:',
+          }),
+        }),
+      );
+
+      // Vietnamese
+      await prodService.sendDirectOtp('user@example.com', '222222', 'vi');
+      expect(mockMailerService.sendMail).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          subject: 'Mã xác thực OTP',
+          context: expect.objectContaining({
+            greeting: 'Xin chào,',
+            heading: 'Mã xác thực (OTP) của bạn là:',
           }),
         }),
       );

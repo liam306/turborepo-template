@@ -3,6 +3,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -212,6 +213,104 @@ describe('StorageService', () => {
       mockSend.mockRejectedValue(unexpectedError);
 
       await expect(service.exists('file.pdf')).rejects.toThrow('Network error');
+    });
+  });
+
+  describe('download', () => {
+    it('downloads object as buffer successfully', async () => {
+      const sampleBytes = new Uint8Array([1, 2, 3, 4]);
+      mockSend.mockResolvedValueOnce({
+        Body: {
+          transformToByteArray: jest.fn().mockResolvedValue(sampleBytes),
+        },
+      });
+
+      const buffer = await service.download('folder/file.bin');
+      expect(buffer).toEqual(Buffer.from(sampleBytes));
+      expect(mockSend).toHaveBeenCalledWith(expect.any(GetObjectCommand));
+    });
+
+    it('throws error when response Body is null or undefined', async () => {
+      mockSend.mockResolvedValueOnce({
+        Body: null,
+      });
+
+      await expect(service.download('empty.bin')).rejects.toThrow(
+        /Empty response body when downloading key: empty.bin/,
+      );
+    });
+  });
+
+  describe('listByPrefix', () => {
+    it('lists object keys matching prefix with pagination continuation', async () => {
+      // Page 1
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'avatars/1.jpg' }, { Key: 'avatars/2.jpg' }],
+        IsTruncated: true,
+        NextContinuationToken: 'token_page_2',
+      });
+      // Page 2
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'avatars/3.jpg' }],
+        IsTruncated: false,
+      });
+
+      const keys = await service.listByPrefix('/avatars/');
+      expect(keys).toEqual(['avatars/1.jpg', 'avatars/2.jpg', 'avatars/3.jpg']);
+      expect(mockSend).toHaveBeenCalledTimes(2);
+      expect(mockSend).toHaveBeenNthCalledWith(
+        1,
+        expect.any(ListObjectsV2Command),
+      );
+      expect(mockSend).toHaveBeenNthCalledWith(
+        2,
+        expect.any(ListObjectsV2Command),
+      );
+    });
+
+    it('returns empty array when prefix has no matches', async () => {
+      mockSend.mockResolvedValueOnce({
+        Contents: [],
+        IsTruncated: false,
+      });
+
+      const keys = await service.listByPrefix('non-existent/');
+      expect(keys).toEqual([]);
+    });
+  });
+
+  describe('deleteByPrefix', () => {
+    it('deletes all matching objects across pages and returns total deleted count', async () => {
+      // Page 1
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'temp/a.txt' }, { Key: 'temp/b.txt' }],
+        IsTruncated: true,
+        NextContinuationToken: 'page2',
+      });
+      // Delete page 1
+      mockSend.mockResolvedValueOnce({});
+      // Page 2
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'temp/c.txt' }],
+        IsTruncated: false,
+      });
+      // Delete page 2
+      mockSend.mockResolvedValueOnce({});
+
+      const total = await service.deleteByPrefix('temp/');
+      expect(total).toBe(3);
+      expect(mockSend).toHaveBeenCalledTimes(4);
+    });
+
+    it('returns 0 when prefix matches no objects', async () => {
+      mockSend.mockResolvedValueOnce({
+        Contents: [],
+        IsTruncated: false,
+      });
+
+      const total = await service.deleteByPrefix('empty/');
+      expect(total).toBe(0);
+      expect(mockSend).toHaveBeenCalledTimes(1);
     });
   });
 });

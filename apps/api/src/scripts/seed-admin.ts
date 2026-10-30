@@ -37,7 +37,7 @@ function parseArgs(): AdminSeedArgs {
   return result;
 }
 
-function generateSecurePassword(length = 16): string {
+export function generateSecurePassword(length = 16): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
   const bytes = crypto.randomBytes(length);
@@ -46,6 +46,107 @@ function generateSecurePassword(length = 16): string {
     result += chars[bytes[i] % chars.length];
   }
   return result;
+}
+
+export interface SeedAdminOptions {
+  email: string;
+  name?: string;
+  password?: string;
+}
+
+export async function seedAdmin(
+  db: any,
+  options: SeedAdminOptions,
+): Promise<{
+  userId: string;
+  email: string;
+  role: string;
+  isExisting: boolean;
+  generatedPassword?: string;
+}> {
+  const email = options.email.trim().toLowerCase();
+  const name = options.name || 'Admin';
+  const generatedPassword = !options.password;
+  const password = options.password || generateSecurePassword(16);
+
+  if (!email.includes('@')) {
+    throw new Error(`[SeedAdmin] Invalid email: "${email}"`);
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const existingUser = await usersRepository.findByEmail(db, email, {
+    includeDeleted: true,
+  });
+
+  if (existingUser) {
+    await usersRepository.update(db, existingUser.id, {
+      role: 'admin',
+      emailVerified: true,
+      name: existingUser.name || name,
+    });
+
+    const accounts = await usersRepository.findAccountsByUserId(
+      db,
+      existingUser.id,
+    );
+    const existingAccount = accounts[0];
+
+    if (existingAccount) {
+      await usersRepository.updateAccount(db, existingAccount.id, {
+        password: hashedPassword,
+      });
+    } else {
+      const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      await usersRepository.createAccount(db, {
+        id: accountId,
+        accountId: existingUser.id,
+        providerId: 'credential',
+        userId: existingUser.id,
+        password: hashedPassword,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    return {
+      userId: existingUser.id,
+      email,
+      role: 'admin',
+      isExisting: true,
+      generatedPassword: generatedPassword ? password : undefined,
+    };
+  }
+
+  const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+  await usersRepository.insert(db, {
+    id: userId,
+    name,
+    email,
+    emailVerified: true,
+    role: 'admin',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  await usersRepository.createAccount(db, {
+    id: accountId,
+    accountId: userId,
+    providerId: 'credential',
+    userId,
+    password: hashedPassword,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  return {
+    userId,
+    email,
+    role: 'admin',
+    isExisting: false,
+    generatedPassword: generatedPassword ? password : undefined,
+  };
 }
 
 async function run() {
@@ -60,16 +161,7 @@ async function run() {
     .trim()
     .toLowerCase();
   const name = cliArgs.name || process.env.ADMIN_NAME || 'Admin';
-  const generatedPassword = !cliArgs.password && !process.env.ADMIN_PASSWORD;
-  const password =
-    cliArgs.password ||
-    process.env.ADMIN_PASSWORD ||
-    generateSecurePassword(16);
-
-  if (!email.includes('@')) {
-    console.error(`[SeedAdmin] Invalid email: "${email}"`);
-    process.exit(1);
-  }
+  const password = cliArgs.password || process.env.ADMIN_PASSWORD;
 
   const dbUrl =
     process.env.DATABASE_URL ||
@@ -77,74 +169,14 @@ async function run() {
   const db = createDbClient(dbUrl);
 
   try {
-    const hashedPassword = await hashPassword(password);
-
-    const existingUser = await usersRepository.findByEmail(db, email, {
-      includeDeleted: true,
-    });
-
-    if (existingUser) {
+    const result = await seedAdmin(db, { email, name, password });
+    console.log(
+      `[SeedAdmin] Admin successfully configured (${result.isExisting ? 'elevated existing' : 'created new'}): ${result.email}`,
+    );
+    if (result.generatedPassword) {
       console.log(
-        `[SeedAdmin] User "${email}" already exists (ID: ${existingUser.id}). Elevating to admin...`,
+        `[SeedAdmin] Generated Password: ${result.generatedPassword}`,
       );
-
-      await usersRepository.update(db, existingUser.id, {
-        role: 'admin',
-        emailVerified: true,
-        name: existingUser.name || name,
-      });
-
-      const accounts = await usersRepository.findAccountsByUserId(
-        db,
-        existingUser.id,
-      );
-      const existingAccount = accounts[0];
-
-      if (existingAccount) {
-        await usersRepository.updateAccount(db, existingAccount.id, {
-          password: hashedPassword,
-        });
-      } else {
-        const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-        await usersRepository.createAccount(db, {
-          id: accountId,
-          accountId: existingUser.id,
-          providerId: 'credential',
-          userId: existingUser.id,
-          password: hashedPassword,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    } else {
-      const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      const accountId = `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
-      await usersRepository.insert(db, {
-        id: userId,
-        name,
-        email,
-        emailVerified: true,
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      await usersRepository.createAccount(db, {
-        id: accountId,
-        accountId: userId,
-        providerId: 'credential',
-        userId,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      console.log(`[SeedAdmin] Created new admin user: ${email}`);
-    }
-
-    console.log('[SeedAdmin] Admin successfully configured.');
-    if (generatedPassword) {
-      console.log(`[SeedAdmin] Generated Password: ${password}`);
     }
   } catch (error) {
     console.error('[SeedAdmin] Error seeding admin:', error);
@@ -154,4 +186,6 @@ async function run() {
   }
 }
 
-run();
+if (process.argv[1]?.includes('seed-admin')) {
+  run();
+}

@@ -64,7 +64,7 @@ jobs:
         run: pnpm check:renovate
 
       - name: Expo SDK Compatibility Audit
-        run: pnpm --filter @repo/mobile exec expo install --check || true
+        run: pnpm check:expo
 
       - name: Lint All Workspaces
         run: pnpm lint
@@ -91,3 +91,66 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  integration:
+    name: Integration & Native Smoke
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/app_test_db
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: app_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Environment
+        run: |
+          cp .env.example .env
+          sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:postgrespassword@localhost:5432/app_test_db|' .env
+          echo "DATABASE_URL=postgresql://postgres:postgrespassword@localhost:5432/app_test_db" >> $GITHUB_ENV
+          echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+          echo "REDIS_PORT=6379" >> $GITHUB_ENV
+
+      - name: Run Database Migrations
+        run: pnpm db:migrate
+
+      - name: Run API & Database Integration Tests
+        run: pnpm test:integration
+
+      - name: Mobile Bundle Export Smoke Check
+        run: pnpm bundle:check:mobile

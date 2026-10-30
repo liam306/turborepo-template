@@ -11,8 +11,10 @@
     "db:studio": "drizzle-kit studio",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm typecheck && vitest run --maxWorkers=2",
-    "test:unit": "pnpm typecheck && vitest run --maxWorkers=2 --exclude '**/*.integration.test.ts'"
+    "test": "pnpm typecheck && vitest run --maxWorkers=2 --exclude '**/*.integration.test.ts'",
+    "test:unit": "pnpm typecheck && vitest run --maxWorkers=2 --exclude '**/*.integration.test.ts'",
+    "test:integration": "pnpm typecheck && vitest run integration",
+    "test:cov": "pnpm typecheck && vitest run --maxWorkers=2 --coverage --exclude '**/*.integration.test.ts'"
   },
   "dependencies": {
     "@repo/types": "workspace:*",

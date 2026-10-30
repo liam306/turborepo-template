@@ -18,6 +18,14 @@
       "dependsOn": ["^build"],
       "env": ["NODE_ENV"]
     },
+    "test:unit": {
+      "dependsOn": ["^build"],
+      "env": ["NODE_ENV"]
+    },
+    "test:cov": {
+      "dependsOn": ["^build"],
+      "env": ["NODE_ENV"]
+    },
     "dev": {
       "passThroughEnv": [
         "NODE_ENV",

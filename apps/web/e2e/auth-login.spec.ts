@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   mockLoggedOut,
+  mockLoggedIn,
   mockSignInSuccess,
   mockSignInFailure,
 } from './fixtures/mock-auth';
@@ -56,7 +57,9 @@ test.describe('Auth - Login Flow', () => {
     ).toBeVisible();
   });
 
-  test('redirects to dashboard upon successful sign in', async ({ page }) => {
+  test('redirects to dashboard upon successful sign in and maintains session on reload', async ({
+    page,
+  }) => {
     await mockSignInSuccess(page, {
       name: 'Logged In User',
       email: 'user@example.com',
@@ -70,6 +73,32 @@ test.describe('Auth - Login Flow', () => {
     await passwordInput.fill('correctpassword123');
     await submitBtn.click();
 
+    // Must reach dashboard and render authenticated greeting
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /Logged In User|User/i }),
+    ).toBeVisible();
+
+    // Verify session persists across full page reload
+    await page.reload();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /Logged In User|User/i }),
+    ).toBeVisible();
+  });
+
+  test('redirects unauthenticated user accessing /dashboard to /login', async ({
+    page,
+  }) => {
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard/);
+  });
+
+  test('redirects authenticated user accessing /login directly to /dashboard', async ({
+    page,
+  }) => {
+    await mockLoggedIn(page);
+    await page.goto('/login');
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
@@ -90,5 +119,22 @@ test.describe('Auth - Login Flow', () => {
     await signInBtn.click();
 
     await expect(nameInput).not.toBeVisible();
+  });
+
+  test('renders Vietnamese language when NEXT_LOCALE cookie is vi', async ({
+    page,
+  }) => {
+    await page.context().addCookies([
+      {
+        name: 'NEXT_LOCALE',
+        value: 'vi',
+        domain: 'localhost',
+        path: '/',
+      },
+    ]);
+    await page.goto('/login');
+    await expect(
+      page.getByRole('button', { name: /Đăng [nN]hập/i }),
+    ).toBeVisible();
   });
 });

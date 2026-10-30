@@ -285,48 +285,47 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           ) : (
             <Tabs
               defaultValue="profile"
-              orientation="vertical"
-              className="flex-1 flex min-h-0 overflow-hidden"
+              className="flex-1 flex flex-col sm:flex-row min-h-0 overflow-hidden"
             >
-              {/* Left Column: Vertical Tabs Sidebar */}
-              <div className="w-52 sm:w-60 shrink-0 border-r border-border bg-muted/20 p-3 overflow-y-auto">
-                <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1.5">
+              {/* Left Column: Responsive Tabs Navigation */}
+              <div className="w-full sm:w-52 md:w-60 shrink-0 border-b sm:border-b-0 sm:border-r border-border bg-muted/20 p-2 sm:p-3 overflow-x-auto sm:overflow-y-auto">
+                <TabsList className="flex sm:flex-col h-auto w-full bg-transparent p-0 gap-1 sm:gap-1.5 justify-start">
                   <TabsTrigger
                     value="profile"
-                    className="w-full justify-start text-xs font-medium px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+                    className="flex-1 sm:flex-initial justify-center sm:justify-start text-xs font-medium px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold shrink-0"
                   >
-                    <User className="h-4 w-4 mr-2.5 shrink-0" />
+                    <User className="h-4 w-4 mr-2 sm:mr-2.5 shrink-0" />
                     <span>{t('tabProfile')}</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="security"
-                    className="w-full justify-start text-xs font-medium px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+                    className="flex-1 sm:flex-initial justify-center sm:justify-start text-xs font-medium px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold shrink-0"
                   >
-                    <KeyRound className="h-4 w-4 mr-2.5 shrink-0" />
+                    <KeyRound className="h-4 w-4 mr-2 sm:mr-2.5 shrink-0" />
                     <span>{t('tabSecurity')}</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="sessions"
-                    className="w-full justify-start text-xs font-medium px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+                    className="flex-1 sm:flex-initial justify-center sm:justify-start text-xs font-medium px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-semibold shrink-0"
                   >
-                    <Laptop className="h-4 w-4 mr-2.5 shrink-0" />
+                    <Laptop className="h-4 w-4 mr-2 sm:mr-2.5 shrink-0" />
                     <span>{t('tabSessions')}</span>
                   </TabsTrigger>
 
                   <TabsTrigger
                     value="danger"
-                    className="w-full justify-start text-xs font-medium px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors data-[state=active]:bg-destructive/10 data-[state=active]:text-destructive data-[state=active]:font-semibold"
+                    className="flex-1 sm:flex-initial justify-center sm:justify-start text-xs font-medium px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors data-[state=active]:bg-destructive/10 data-[state=active]:text-destructive data-[state=active]:font-semibold shrink-0"
                   >
-                    <Shield className="h-4 w-4 mr-2.5 shrink-0" />
+                    <Shield className="h-4 w-4 mr-2 sm:mr-2.5 shrink-0" />
                     <span>{t('tabDanger')}</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
 
               {/* Right Column: Tab Content */}
-              <div className="flex-1 min-w-0 p-6 overflow-y-auto bg-background">
+              <div className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto bg-background">
                 <TabsContent
                   value="profile"
                   className="m-0 focus-visible:outline-none"

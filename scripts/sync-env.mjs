@@ -103,26 +103,26 @@ function resolveAppConfig(appName, envName, rootEnv, rootExampleEnv) {
 
   const postgresUser =
     rootEnv.POSTGRES_USER ??
-    rootExampleEnv.POSTGRES_USER ??
     parsedDb.user ??
+    rootExampleEnv.POSTGRES_USER ??
     'postgres';
 
   const postgresPassword =
     rootEnv.POSTGRES_PASSWORD ??
-    rootExampleEnv.POSTGRES_PASSWORD ??
     parsedDb.password ??
+    rootExampleEnv.POSTGRES_PASSWORD ??
     'postgres';
 
   const postgresDb =
     rootEnv.POSTGRES_DB ??
-    rootExampleEnv.POSTGRES_DB ??
     parsedDb.database ??
+    rootExampleEnv.POSTGRES_DB ??
     'app_db';
 
   const postgresPort =
     rootEnv.POSTGRES_PORT ??
-    rootExampleEnv.POSTGRES_PORT ??
     parsedDb.port ??
+    rootExampleEnv.POSTGRES_PORT ??
     '5432';
 
   // Special mappings per application

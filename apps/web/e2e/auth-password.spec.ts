@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import {
   mockLoggedOut,
   mockForgotPasswordSuccess,
+  mockForgotPasswordFailure,
   mockResetPasswordSuccess,
+  mockResetPasswordFailure,
 } from './fixtures/mock-auth';
 
 test.describe('Auth - Password Reset Flow', () => {
@@ -29,9 +31,25 @@ test.describe('Auth - Password Reset Flow', () => {
     ).toBeVisible();
   });
 
-  test('requests OTP and proceeds to reset form', async ({ page }) => {
+  test('displays error message when request OTP fails', async ({ page }) => {
+    await mockForgotPasswordFailure(page, 404, 'User not found');
+
+    const emailInput = page.locator('input[type="email"]');
+    const submitBtn = page.getByRole('button', {
+      name: /Send Verification Code|Gửi mã xác thực/i,
+    });
+
+    await emailInput.fill('unknown@example.com');
+    await submitBtn.click();
+
+    await expect(page.getByText(/User not found|error/i)).toBeVisible();
+  });
+
+  test('requests OTP, validates password matching, rejects invalid OTP, then successfully resets password', async ({
+    page,
+  }) => {
     await mockForgotPasswordSuccess(page);
-    await mockResetPasswordSuccess(page);
+    await mockResetPasswordFailure(page, 400, 'Invalid or expired OTP');
 
     const emailInput = page.locator('input[type="email"]');
     const submitBtn = page.getByRole('button', {
@@ -45,24 +63,35 @@ test.describe('Auth - Password Reset Flow', () => {
     await expect(
       page.getByText(/Enter Verification Code|Nhập mã xác thực/i),
     ).toBeVisible();
-    await expect(page.locator('input[type="password"]').first()).toBeVisible();
 
-    // Enter 6-digit OTP into OTP input
-    const otpInput = page.locator(
-      'input[autocomplete="one-time-code"], input[data-input-otp]',
-    );
-    if (await otpInput.count()) {
-      await otpInput.fill('123456');
-    }
+    // Fill OTP unconditionally
+    const otpInput = page.locator('input[autocomplete="one-time-code"]');
+    await expect(otpInput).toBeAttached();
+    await otpInput.fill('000000');
 
-    // Enter matching new passwords
+    // Fill passwords that do not match to test validation
     const passwordInputs = page.locator('input[type="password"]');
     await passwordInputs.nth(0).fill('NewSecurePassword123');
-    await passwordInputs.nth(1).fill('NewSecurePassword123');
+    await passwordInputs.nth(1).fill('MismatchPassword123');
 
     const updateBtn = page.getByRole('button', {
       name: /Update Password|Cập nhật mật khẩu/i,
     });
+    await updateBtn.click();
+
+    await expect(
+      page.getByText(/Passwords do not match|Mật khẩu xác nhận không khớp/i),
+    ).toBeVisible();
+
+    // Fix matching password but with failing OTP
+    await passwordInputs.nth(1).fill('NewSecurePassword123');
+    await updateBtn.click();
+
+    await expect(page.getByText(/Invalid or expired OTP|error/i)).toBeVisible();
+
+    // Now mock reset success and submit with valid OTP
+    await mockResetPasswordSuccess(page);
+    await otpInput.fill('123456');
     await updateBtn.click();
 
     // Verify success banner and redirect to login

@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Logger,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -12,12 +7,7 @@ import compression from 'compression';
 import basicAuth from 'express-basic-auth';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import {
-  AllExceptionsFilter,
-  LoggingInterceptor,
-  TransformInterceptor,
-} from './common';
-import { I18nService } from 'nestjs-i18n';
+import { configureApp } from './app.config';
 import { EnvVars } from './config/env.validation';
 import './instrument';
 
@@ -84,50 +74,8 @@ async function bootstrap() {
     exposedHeaders: ['set-auth-token', 'Set-Auth-Token'],
   });
 
-  // Global URI Versioning (v1)
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-    prefix: 'v',
-  });
-
-  // Global DTO Validation & Transformation
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      exceptionFactory: (validationErrors = []) => {
-        const errors: Record<string, string[]> = {};
-        for (const err of validationErrors) {
-          const property = err.property;
-          const constraints = err.constraints
-            ? Object.values(err.constraints)
-            : [];
-          if (!errors[property]) {
-            errors[property] = [];
-          }
-          errors[property].push(...constraints);
-        }
-        return new BadRequestException({
-          code: 'VALIDATION_FAILED',
-          // i18n-audit-ignore: AllExceptionsFilter translates this validation message key using request locale.
-          message: 'common.errors.invalidData',
-          errors,
-        });
-      },
-    }),
-  );
-
-  // Global Response Envelope & Exception Interceptor / Filter
-  app.useGlobalInterceptors(
-    new LoggingInterceptor(),
-    new TransformInterceptor(),
-  );
-  app.useGlobalFilters(new AllExceptionsFilter(app.get(I18nService)));
+  // Global configuration: versioning, validation pipe, interceptors, exception filter
+  configureApp(app);
 
   // Basic Auth protection for Swagger Docs and Bull Board dashboard
   const enableDocs =

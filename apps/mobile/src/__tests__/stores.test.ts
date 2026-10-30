@@ -97,7 +97,10 @@ describe('Mobile Stores & Data Cleansing', () => {
         expect.stringContaining('/auth/sign-out'),
         null,
         expect.objectContaining({
-          headers: { Authorization: 'Bearer active-token' },
+          headers: expect.objectContaining({
+            Authorization: 'Bearer active-token',
+            'x-lang': expect.any(String),
+          }),
         }),
       );
       expect(useUserStore.getState().token).toBeNull();

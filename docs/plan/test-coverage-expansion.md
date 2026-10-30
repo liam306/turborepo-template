@@ -83,20 +83,20 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Protect shared authentication and data integrity before expanding frontend coverage.
 
-- [ ] Apply checked-in migrations to an empty disposable PostgreSQL database and verify a second migration run is safe. Generate any necessary schema changes through Drizzle Kit, never handwritten migrations.
-- [ ] Verify constraints, timestamps, normalized email lookup, active-session expiry, ordering, and actual lock behavior.
-- [ ] Verify default reads exclude deleted users and explicit `includeDeleted` reads include them.
-- [ ] Verify deletion revokes sessions and soft-deletes the user atomically; inject a failure to prove rollback.
-- [ ] Verify restore retains credentials, allows a new login, and does not resurrect revoked sessions or removed avatars.
-- [ ] Boot HTTP tests with production-equivalent pipes, filters, interceptors, CORS, versioning, and guards. Do not maintain a divergent test-only bootstrap.
-- [ ] Exercise signup, email verification, cookie/bearer login, logout, and password reset with Better Auth enabled.
-- [ ] Cover wrong, expired, reused, and over-attempt OTPs, plus resend behavior and session expiry.
-- [ ] Verify missing authentication, cross-user session revocation, non-admin restore, deleted users, active bans, expired bans, and fresh role resolution.
-- [ ] Cover credential and OAuth account password setup, incorrect current passwords, password-change revocation, and password-protected account deletion.
-- [ ] Cover bootstrap tokens, existing users, mixed provider accounts, soft-deleted users, concurrent requests, and partial-write failures. Define expected outcomes before altering bootstrap behavior.
-- [ ] Exercise DTO unknown fields, invalid inputs, and multipart avatar missing file, invalid contents/type, and the 5 MB boundary.
-- [ ] Assert response envelopes, public error metadata, secret sanitization, and `vi`/`en` locale resolution through HTTP.
-- [ ] Test CORS allow/deny/preflight, trusted origins, throttling boundaries, docs/Bull Board authentication, and health dependency failures.
+- [x] Apply checked-in migrations to an empty disposable PostgreSQL database and verify a second migration run is safe. Generate any necessary schema changes through Drizzle Kit, never handwritten migrations.
+- [x] Verify constraints, timestamps, normalized email lookup, active-session expiry, ordering, and actual lock behavior.
+- [x] Verify default reads exclude deleted users and explicit `includeDeleted` reads include them.
+- [x] Verify deletion revokes sessions and soft-deletes the user atomically; inject a failure to prove rollback.
+- [x] Verify restore retains credentials, allows a new login, and does not resurrect revoked sessions or removed avatars.
+- [x] Boot HTTP tests with production-equivalent pipes, filters, interceptors, CORS, versioning, and guards. Do not maintain a divergent test-only bootstrap.
+- [x] Exercise signup, email verification, cookie/bearer login, logout, and password reset with Better Auth enabled.
+- [x] Cover wrong, expired, reused, and over-attempt OTPs, plus resend behavior and session expiry.
+- [x] Verify missing authentication, cross-user session revocation, non-admin restore, deleted users, active bans, expired bans, and fresh role resolution.
+- [x] Cover credential and OAuth account password setup, incorrect current passwords, password-change revocation, and password-protected account deletion.
+- [x] Cover bootstrap tokens, existing users, mixed provider accounts, soft-deleted users, concurrent requests, and partial-write failures. Define expected outcomes before altering bootstrap behavior.
+- [x] Exercise DTO unknown fields, invalid inputs, and multipart avatar missing file, invalid contents/type, and the 5 MB boundary.
+- [x] Assert response envelopes, public error metadata, secret sanitization, and `vi`/`en` locale resolution through HTTP.
+- [x] Test CORS allow/deny/preflight, trusted origins, throttling boundaries, docs/Bull Board authentication, and health dependency failures.
 
 **Acceptance:** Tests fail if authorization, default soft-delete filtering, transaction atomicity, or auth route wiring is broken. No test touches non-test data.
 

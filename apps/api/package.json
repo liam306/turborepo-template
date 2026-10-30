@@ -13,7 +13,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "test": "jest --testPathIgnorePatterns='\\.integration\\.spec\\.ts$' --maxWorkers=2",
     "test:unit": "jest --testPathIgnorePatterns='\\.integration\\.spec\\.ts$' --maxWorkers=2",
-    "test:integration": "jest --config test/jest-integration.json --runInBand",
+    "test:integration": "vitest run src/app.integration.spec.ts",
     "test:watch": "jest --watch --maxWorkers=2",
     "test:cov": "jest --coverage --testPathIgnorePatterns='\\.integration\\.spec\\.ts$' --maxWorkers=2"
   },
@@ -123,6 +123,7 @@
     "ts-loader": "^9.5.2",
     "tsx": "^4.19.3",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.26.0"
+    "typescript-eslint": "^8.26.0",
+    "vitest": "5.0.3"
   }
 }

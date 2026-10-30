@@ -1,9 +1,9 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["js", "json", "ts", "mjs"],
   "rootDir": "../src",
   "testRegex": ".*\\.integration\\.spec\\.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": [
+    "^.+\\.(t|j|mj)s$": [
       "@swc/jest",
       {
         "jsc": {
@@ -23,5 +23,7 @@
   },
   "testEnvironment": "node",
   "setupFilesAfterEnv": ["<rootDir>/../test/setup.integration.ts"],
-  "transformIgnorePatterns": ["node_modules/(?!.*(better-auth|@nestjs))"]
+  "transformIgnorePatterns": [
+    "node_modules/(?!(better-auth|@better-auth|@nestjs)/)"
+  ]
 }

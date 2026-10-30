@@ -134,7 +134,7 @@ test.describe('Auth - Login Flow', () => {
     ]);
     await page.goto('/login');
     await expect(
-      page.getByRole('button', { name: 'Đăng nhập', exact: true }),
+      page.getByRole('button', { name: /Đăng [nN]hập/i }),
     ).toBeVisible();
   });
 });

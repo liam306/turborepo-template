@@ -141,9 +141,7 @@ jobs:
       - name: Setup Environment
         run: |
           cp .env.example .env
-          echo "DATABASE_URL=postgresql://postgres:postgrespassword@localhost:5432/app_test_db" >> .env
-          echo "REDIS_HOST=localhost" >> .env
-          echo "REDIS_PORT=6379" >> .env
+          sed -i 's|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:postgrespassword@localhost:5432/app_test_db|' .env
           echo "DATABASE_URL=postgresql://postgres:postgrespassword@localhost:5432/app_test_db" >> $GITHUB_ENV
           echo "REDIS_HOST=localhost" >> $GITHUB_ENV
           echo "REDIS_PORT=6379" >> $GITHUB_ENV

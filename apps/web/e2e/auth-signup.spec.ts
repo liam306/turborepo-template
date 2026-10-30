@@ -67,7 +67,11 @@ test.describe('Auth - Sign Up & OTP Flow', () => {
     await passwordInput.fill('StrongPassword123');
     await submitBtn.click();
 
-    await expect(page.getByText(/User already exists|error/i)).toBeVisible();
+    await expect(
+      page.getByText(
+        /User with this email already exists|User already exists|Tài khoản với email này đã tồn tại|error/i,
+      ),
+    ).toBeVisible();
   });
 
   test('submits signup, handles OTP failure, then verifies successfully and persists session', async ({
@@ -104,7 +108,11 @@ test.describe('Auth - Sign Up & OTP Flow', () => {
     await verifyBtn.click();
 
     // Verify error appears
-    await expect(page.getByText(/Invalid OTP code|error/i)).toBeVisible();
+    await expect(
+      page.getByText(
+        /Invalid or expired code|Invalid OTP code|Mã xác minh không hợp lệ|error/i,
+      ),
+    ).toBeVisible();
 
     // Now mock OTP success and enter valid OTP
     await mockVerifyOtpSuccess(page, {

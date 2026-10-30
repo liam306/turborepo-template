@@ -90,7 +90,7 @@ test.describe('Profile & Account Settings Modal', () => {
 
     await expect(
       modal.getByText(
-        /Profile updated successfully|Cập nhật hồ sơ thành công/i,
+        /Profile updated successfully|Name updated successfully|Cập nhật hồ sơ thành công|Cập nhật tên thành công/i,
       ),
     ).toBeVisible();
   });
@@ -147,9 +147,15 @@ test.describe('Profile & Account Settings Modal', () => {
     await sessionsTab.click();
 
     // Verify all 3 sessions rendered initially
-    await expect(modal.getByText('Playwright Chrome')).toBeVisible();
-    await expect(modal.getByText('Mobile Safari')).toBeVisible();
-    await expect(modal.getByText('Firefox Mac')).toBeVisible();
+    const currentSession = modal.getByText(/Chrome.*Linux|Playwright Chrome/i);
+    const safariSession = modal.getByText(/Safari.*iOS|Mobile Safari/i);
+    const firefoxSession = modal.getByText(/Firefox.*macOS|Firefox Mac/i);
+
+    await expect(currentSession).toBeVisible();
+    await safariSession.scrollIntoViewIfNeeded();
+    await expect(safariSession).toBeVisible();
+    await firefoxSession.scrollIntoViewIfNeeded();
+    await expect(firefoxSession).toBeVisible();
 
     // Search with debounce: type "Firefox"
     const searchInput = modal.locator(
@@ -160,36 +166,41 @@ test.describe('Profile & Account Settings Modal', () => {
     await page.waitForTimeout(400);
 
     // Only Firefox Mac remains visible
-    await expect(modal.getByText('Firefox Mac')).toBeVisible();
-    await expect(modal.getByText('Mobile Safari')).not.toBeVisible();
+    await expect(modal.getByText(/Firefox.*macOS|Firefox Mac/i)).toBeVisible();
+    await expect(
+      modal.getByText(/Safari.*iOS|Mobile Safari/i),
+    ).not.toBeVisible();
 
     // Clear search
     await searchInput.clear();
     await page.waitForTimeout(400);
-    await expect(modal.getByText('Mobile Safari')).toBeVisible();
+    await expect(modal.getByText(/Safari.*iOS|Mobile Safari/i)).toBeVisible();
 
     // Revoke single session (Mobile Safari)
-    const revokeMobileBtn = modal
-      .getByRole('button', {
-        name: /Revoke|Thu hồi/i,
-      })
-      .first();
+    const safariCard = modal
+      .locator('div.rounded-xl')
+      .filter({ hasText: /Safari/i });
+    const revokeMobileBtn = safariCard.getByRole('button', {
+      name: /^Sign out$|^Đăng xuất$/i,
+    });
     await revokeMobileBtn.click();
 
     // Confirm dialog appears
     const confirmAlert = page.getByRole('alertdialog');
     await expect(confirmAlert).toBeVisible();
     const confirmBtn = confirmAlert.getByRole('button', {
-      name: /Confirm|Xác nhận|Revoke|Thu hồi/i,
+      name: /^Sign out$|^Đăng xuất$|Confirm|Xác nhận/i,
     });
     await confirmBtn.click();
 
     // Mobile Safari revoked
-    await expect(modal.getByText('Mobile Safari')).not.toBeVisible();
+    await expect(
+      modal.getByText(/Safari.*iOS|Mobile Safari/i),
+    ).not.toBeVisible();
 
     // Revoke all other sessions
     const revokeOthersBtn = modal.getByRole('button', {
-      name: /Revoke All Other Sessions|Thu hồi tất cả phiên khác/i,
+      name: /Sign out of all other devices|Đăng xuất khỏi tất cả thiết bị khác/i,
     });
     await revokeOthersBtn.click();
 
@@ -197,13 +208,17 @@ test.describe('Profile & Account Settings Modal', () => {
     await expect(confirmOthersAlert).toBeVisible();
     await confirmOthersAlert
       .getByRole('button', {
-        name: /Confirm|Xác nhận|Revoke|Thu hồi/i,
+        name: /Sign out of all other devices|Đăng xuất khỏi tất cả thiết bị khác|Confirm|Xác nhận/i,
       })
       .click();
 
     // Now only current session remains
-    await expect(modal.getByText('Firefox Mac')).not.toBeVisible();
-    await expect(modal.getByText('Playwright Chrome')).toBeVisible();
+    await expect(
+      modal.getByText(/Firefox.*macOS|Firefox Mac/i),
+    ).not.toBeVisible();
+    await expect(
+      modal.getByText(/Chrome.*Linux|Playwright Chrome/i),
+    ).toBeVisible();
   });
 
   test('deactivates account via Danger Zone and redirects to login', async ({
@@ -230,7 +245,7 @@ test.describe('Profile & Account Settings Modal', () => {
     await expect(confirmAlert).toBeVisible();
     await confirmAlert
       .getByRole('button', {
-        name: /Deactivate|Vô hiệu hóa|Confirm|Xác nhận/i,
+        name: /Delete|Deactivate|Vô hiệu hóa|Confirm|Xác nhận|Xóa/i,
       })
       .click();
 
@@ -251,7 +266,7 @@ test.describe('Profile & Account Settings Modal', () => {
     await userBtn.click();
 
     const logoutItem = page.getByRole('menuitem', {
-      name: /Log out|Đăng xuất/i,
+      name: /Sign Out|Log out|Đăng xuất/i,
     });
     await logoutItem.click();
 

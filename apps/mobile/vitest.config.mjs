@@ -8,6 +8,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     maxWorkers: 2,
+    setupFiles: ['./src/__tests__/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getApiHeaders, axiosInstance, apiClient } from '../services/apiClient';
+import axios from 'axios';
+import {
+  getApiHeaders,
+  axiosInstance,
+  apiClient,
+  refreshAuthSession,
+} from '../services/apiClient';
+import { useUserStore } from '../stores/useUserStore';
 import i18n from '../i18n';
 import enLocale from '../locales/en.json';
 import viLocale from '../locales/vi.json';
@@ -136,6 +143,26 @@ describe('Mobile apiClient & Locale Headers', () => {
         expect(err.message).toBe(viLocale.common.authRequired);
         expect(err.status).toBe(401);
       }
+    });
+  });
+
+  describe('Session Refresh & Concurrent 401 Handling (Seam 3)', () => {
+    it('returns null and logs out when /auth/get-session returns null or empty session', async () => {
+      useUserStore.setState({
+        token: 'expired-token',
+        profile: { id: 'u1' } as any,
+      });
+      const logoutSpy = vi.spyOn(useUserStore.getState(), 'logout');
+      vi.spyOn(axios, 'get').mockResolvedValueOnce({
+        data: null,
+        headers: {},
+      } as any);
+
+      const refreshed = await refreshAuthSession();
+
+      expect(refreshed).toBeNull();
+      expect(logoutSpy).toHaveBeenCalled();
+      expect(useUserStore.getState().token).toBeNull();
     });
   });
 });

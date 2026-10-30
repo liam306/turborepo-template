@@ -106,14 +106,14 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Prevent stale sessions, refresh loops, accidental logout, and cross-account cache leaks.
 
-- [ ] Test simultaneous 401 responses, one in-flight refresh, token rotation, queued request settlement, and retry limits.
-- [ ] Define and test null-session, missing-token, refresh failure, repeated 401, auth-route exclusion, and offline behavior.
-- [ ] Test logout during refresh and ensure late responses cannot restore the previous user's session.
-- [ ] Test hydration success/failure, remembered sessions, `rememberMe=false`, cold start, foreground transitions, and listener cleanup.
-- [ ] Assert active locale and authorization on all request paths, including store logout and social auth.
-- [ ] Test hooks with a real `QueryClientProvider`, isolated query clients, controlled retries, and observable pending/success/error transitions.
-- [ ] Verify profile/avatar cache updates, session invalidation, disabled queries, logout/deletion cache clearing, and switching accounts.
-- [ ] Cover auth/profile validation, duplicate submission prevention, cancellation, alerts, and mutation failure behavior.
+- [x] Test simultaneous 401 responses, one in-flight refresh, token rotation, queued request settlement, and retry limits.
+- [x] Define and test null-session, missing-token, refresh failure, repeated 401, auth-route exclusion, and offline behavior.
+- [x] Test logout during refresh and ensure late responses cannot restore the previous user's session.
+- [x] Test hydration success/failure, remembered sessions, `rememberMe=false`, cold start, foreground transitions, and listener cleanup.
+- [x] Assert active locale and authorization on all request paths, including store logout and social auth.
+- [x] Test hooks with a real `QueryClientProvider`, isolated query clients, controlled retries, and observable pending/success/error transitions.
+- [x] Verify profile/avatar cache updates, session invalidation, disabled queries, logout/deletion cache clearing, and switching accounts.
+- [x] Cover auth/profile validation, duplicate submission prevention, cancellation, alerts, and mutation failure behavior.
 
 **Acceptance:** Assertions prove final state, lifecycle transitions, cache contents, and request ownership, not merely function delegation.
 

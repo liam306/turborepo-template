@@ -72,7 +72,12 @@ export async function refreshAuthSession(): Promise<string | null> {
       (res.headers['set-auth-token'] as string) ||
       (res.headers['Set-Auth-Token'] as string);
 
-    const newToken = setAuthToken || res.data?.session?.token || currentToken;
+    if (!res.data || !res.data.session) {
+      useUserStore.getState().logout();
+      return null;
+    }
+
+    const newToken = setAuthToken || res.data.session.token;
 
     if (newToken && newToken !== currentToken) {
       useUserStore.getState().setToken(newToken);

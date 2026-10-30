@@ -3,6 +3,7 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { IUserProfile } from '@repo/types';
+import i18n from '@/i18n';
 
 interface IUserState {
   token: string | null;
@@ -40,10 +41,13 @@ export const useUserStore = create<IUserState>()(
         if (token) {
           const baseUrl =
             process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+          const lang = i18n?.language || 'vi';
           axios
             .post(`${baseUrl}/auth/sign-out`, null, {
               headers: {
                 Authorization: `Bearer ${token}`,
+                'x-lang': lang,
+                'Accept-Language': lang,
               },
             })
             .catch(() => {});

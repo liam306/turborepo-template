@@ -123,15 +123,15 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Retain fast mocked UI tests while exposing real client/server contract regressions.
 
-- [ ] Make mocked sign-in/verification transition session state consistently; require authenticated dashboard content after navigation and reload.
-- [ ] Replace conditional required-field interactions and broad success assertions with explicit preconditions and outcomes.
-- [ ] Cover profile save, avatar crop/upload, password setup/change, single/other-session revocation, logout, and account deactivation.
-- [ ] Cover OTP/reset failures, expiration, resend cooldown, loading, empty/error states, and repeat submissions.
-- [ ] Exercise search debounce, page navigation, page-size changes, and empty/out-of-range results after revocation.
-- [ ] Run critical scenarios with explicit `vi` and `en` settings and assert locale-specific messages and request headers.
-- [ ] Verify expired/invalid cookies, protected-route redirects, redirect destination handling, keyboard navigation, and dialog focus behavior.
-- [ ] Add isolated real-backend journeys using API, PostgreSQL, and Mailpit: signup/OTP/login, profile persistence, password reset, revocation, and logout.
-- [ ] Confirm successful operations persist after reload and invalidated credentials/sessions stop working.
+- [x] Make mocked sign-in/verification transition session state consistently; require authenticated dashboard content after navigation and reload.
+- [x] Replace conditional required-field interactions and broad success assertions with explicit preconditions and outcomes.
+- [x] Cover profile save, avatar crop/upload, password setup/change, single/other-session revocation, logout, and account deactivation.
+- [x] Cover OTP/reset failures, expiration, resend cooldown, loading, empty/error states, and repeat submissions.
+- [x] Exercise search debounce, page navigation, page-size changes, and empty/out-of-range results after revocation.
+- [x] Run critical scenarios with explicit `vi` and `en` settings and assert locale-specific messages and request headers.
+- [x] Verify expired/invalid cookies, protected-route redirects, redirect destination handling, keyboard navigation, and dialog focus behavior.
+- [x] Add isolated real-backend journeys using API, PostgreSQL, and Mailpit: signup/OTP/login, profile persistence, password reset, revocation, and logout.
+- [x] Confirm successful operations persist after reload and invalidated credentials/sessions stop working.
 
 **Acceptance:** Real-backend scenarios do not intercept business endpoints; mocked scenarios remain identified as UI tests rather than full-stack proof.
 

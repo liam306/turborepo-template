@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test';
 import {
   mockLoggedOut,
   mockSignUpSuccess,
+  mockSignUpFailure,
   mockVerifyOtpSuccess,
+  mockVerifyOtpFailure,
 } from './fixtures/mock-auth';
 
 test.describe('Auth - Sign Up & OTP Flow', () => {
@@ -52,9 +54,8 @@ test.describe('Auth - Sign Up & OTP Flow', () => {
     ).toBeVisible();
   });
 
-  test('submits signup and completes OTP verification', async ({ page }) => {
-    await mockSignUpSuccess(page);
-    await mockVerifyOtpSuccess(page);
+  test('displays error message when signup API fails', async ({ page }) => {
+    await mockSignUpFailure(page, 400, 'User already exists');
 
     const nameInput = page.getByPlaceholder(/John Doe|Nguyễn Văn A/i);
     const emailInput = page.locator('input[type="email"]');
@@ -62,6 +63,25 @@ test.describe('Auth - Sign Up & OTP Flow', () => {
     const submitBtn = page.getByRole('button', { name: /Sign Up|Đăng ký/i });
 
     await nameInput.fill('Test User');
+    await emailInput.fill('existing@example.com');
+    await passwordInput.fill('StrongPassword123');
+    await submitBtn.click();
+
+    await expect(page.getByText(/User already exists|error/i)).toBeVisible();
+  });
+
+  test('submits signup, handles OTP failure, then verifies successfully and persists session', async ({
+    page,
+  }) => {
+    await mockSignUpSuccess(page);
+    await mockVerifyOtpFailure(page, 400, 'Invalid OTP code');
+
+    const nameInput = page.getByPlaceholder(/John Doe|Nguyễn Văn A/i);
+    const emailInput = page.locator('input[type="email"]');
+    const passwordInput = page.locator('input[type="password"]');
+    const submitBtn = page.getByRole('button', { name: /Sign Up|Đăng ký/i });
+
+    await nameInput.fill('New User');
     await emailInput.fill('newuser@example.com');
     await passwordInput.fill('StrongPassword123');
     await submitBtn.click();
@@ -73,18 +93,38 @@ test.describe('Auth - Sign Up & OTP Flow', () => {
       page.getByText(/Enter Verification Code|Nhập mã xác thực/i),
     ).toBeVisible();
 
-    // Type 6 digits OTP
+    // Type incorrect 6 digits OTP first
     const otpInput = page.locator('input[placeholder="••••••"]');
-    await otpInput.fill('123456');
+    await otpInput.fill('000000');
 
-    // Click verify code button
     const verifyBtn = page.getByRole('button', {
       name: /Verify Code|Xác thực mã/i,
     });
     await expect(verifyBtn).toBeEnabled();
     await verifyBtn.click();
 
-    // Redirection to dashboard
+    // Verify error appears
+    await expect(page.getByText(/Invalid OTP code|error/i)).toBeVisible();
+
+    // Now mock OTP success and enter valid OTP
+    await mockVerifyOtpSuccess(page, {
+      name: 'New User',
+      email: 'newuser@example.com',
+    });
+    await otpInput.fill('123456');
+    await verifyBtn.click();
+
+    // Must navigate to dashboard
     await expect(page).toHaveURL(/\/dashboard/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /New User|User/i }),
+    ).toBeVisible();
+
+    // Session persists after page reload
+    await page.reload();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /New User|User/i }),
+    ).toBeVisible();
   });
 });

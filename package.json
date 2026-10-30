@@ -24,6 +24,7 @@
     "dev:mobile:web": "pnpm --filter @repo/mobile web",
     "lint:mobile": "pnpm --filter @repo/mobile lint",
     "typecheck:mobile": "pnpm --filter @repo/mobile typecheck",
+    "bundle:check:mobile": "pnpm --filter @repo/mobile bundle:check",
     "dev:web": "pnpm --filter @repo/web dev",
     "build:web": "pnpm --filter @repo/web build",
     "start:web": "pnpm --filter @repo/web start",

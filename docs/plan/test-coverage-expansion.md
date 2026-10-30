@@ -141,14 +141,14 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Node and responsive browser tests cannot validate native modules, platform permissions, or device lifecycle.
 
-- [ ] Select and validate component-test tooling against installed Expo/React Native/React versions; preserve useful pure Vitest suites.
-- [ ] Test auth/OTP/profile screens, navigation boundaries, keyboard interactions, and modal behavior.
-- [ ] Cover image permission denial, picker cancellation, missing assets, multipart uploads, and upload failure.
-- [ ] Cover Apple cancellation/missing identity token/provider errors and Google callback failure behavior.
-- [ ] Test development/preview/production app identifiers and schemes, including environment precedence.
-- [ ] Add Android/iOS bundle checks and native smoke flows for launch, login, restart, profile, and logout.
-- [ ] Verify OAuth callbacks in development builds. Keep external-provider credential-dependent verification in a separately documented release suite.
-- [ ] Run component tests on PRs; schedule native smoke tests and require release verification. Choose local or remote runners explicitly; paid cloud execution requires approval.
+- [x] Select and validate component-test tooling against installed Expo/React Native/React versions; preserve useful pure Vitest suites.
+- [x] Test auth/OTP/profile screens, navigation boundaries, keyboard interactions, and modal behavior.
+- [x] Cover image permission denial, picker cancellation, missing assets, multipart uploads, and upload failure.
+- [x] Cover Apple cancellation/missing identity token/provider errors and Google callback failure behavior.
+- [x] Test development/preview/production app identifiers and schemes, including environment precedence.
+- [x] Add Android/iOS bundle checks and native smoke flows for launch, login, restart, profile, and logout.
+- [x] Verify OAuth callbacks in development builds. Keep external-provider credential-dependent verification in a separately documented release suite.
+- [x] Run component tests on PRs; schedule native smoke tests and require release verification. Choose local or remote runners explicitly; paid cloud execution requires approval.
 
 **Acceptance:** Native verification produces device/runtime evidence and failure logs/screenshots. Unsupported provider automation has a documented manual release check, not a silent skip.
 

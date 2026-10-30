@@ -53,10 +53,17 @@ Always use **pnpm**. Never use `npm`, `yarn`, or `bun`.
    - Always use `cn()` from `@/lib/utils` for conditional classes, never template strings.
 8. **UI Component Library Mandate (shadcn/ui First)**:
    - On web frontend, always reuse and prioritize shadcn/ui components from `@/components/ui/*`.
-9. **Git Commit Guidelines & Automatic Commit**:
-   - Use Conventional Commits (`feat(...)`, `fix(...)`, `refactor(...)`, `test(...)`, `chore(...)`).
+9. **Git Branching, Commit Guidelines & Automatic Commit**:
+   - **Branching Mandate**: NEVER modify files or commit directly on the protected `main` branch.
+   - **New Task Branching Lifecycle**: When starting any new task, feature, or bugfix:
+     1. Inspect active branch: `git branch --show-current`.
+     2. If currently on a stale branch from a previous task or feature, switch to `main`: `git checkout main`.
+     3. Pull latest upstream changes: `git pull origin main`.
+     4. Create and switch to a fresh topic branch originating from updated `main`: `git checkout -b <type>/<descriptive-kebab-slug>` (e.g. `feat/auth-otp`, `fix/mobile-layout`, `chore/deps-renovate`).
+     5. Only remain on an existing topic branch when explicitly asked to continue working on that specific ongoing task or PR.
+   - **Conventional Commits**: Use Conventional Commits (`feat(...)`, `fix(...)`, `refactor(...)`, `test(...)`, `chore(...)`).
    - **Detailed Message Body**: Commit messages must include a clear subject line and a detailed body with bullet points summarizing the specific modifications, touched areas, and rationale.
-   - Automatically commit changes upon completing a task once all verification steps (formatting, tests, typecheck, lint) pass without errors.
+   - **Automatic Commit**: Automatically commit changes upon completing a task once all verification steps (formatting, tests, typecheck, lint) pass without errors.
 10. **System-Wide Soft Delete Standards & Repository Pattern**:
     - Never execute hard SQL `.delete(...)` on primary domain entities (`user`).
     - Soft delete sets `deletedAt: new Date()`.

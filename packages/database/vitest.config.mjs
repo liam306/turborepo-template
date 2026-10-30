@@ -1,4 +1,14 @@
+import * as dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
+
+const rootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../',
+);
+dotenv.config({ path: path.join(rootDir, '.env'), quiet: true });
+dotenv.config({ quiet: true });
 
 export default defineConfig({
   test: {

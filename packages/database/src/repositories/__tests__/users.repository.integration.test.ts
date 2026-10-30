@@ -1,9 +1,20 @@
+import path from 'path';
+import * as dotenv from 'dotenv';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq } from 'drizzle-orm';
 import * as schema from '../../schema';
 import { usersRepository } from '../users.repository';
+
+dotenv.config({
+  path: path.resolve(
+    process.cwd(),
+    process.cwd().endsWith('database') ? '../../.env' : '.env',
+  ),
+  quiet: true,
+});
+dotenv.config({ quiet: true });
 
 const databaseUrl =
   process.env.DATABASE_URL ||

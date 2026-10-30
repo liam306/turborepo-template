@@ -1,4 +1,16 @@
+import path from 'path';
+import * as dotenv from 'dotenv';
+
 // Integration test environment setup (Better Auth is NOT mocked here)
+dotenv.config({
+  path: path.resolve(
+    process.cwd(),
+    process.cwd().endsWith('api') ? '../../.env' : '.env',
+  ),
+  quiet: true,
+});
+dotenv.config({ quiet: true });
+
 process.env.NODE_ENV = 'test';
 process.env.BETTER_AUTH_SECRET =
   process.env.BETTER_AUTH_SECRET ||

@@ -66,14 +66,14 @@ Assertion weaknesses also need correction: login E2E only checks a dashboard URL
 
 **Rationale:** Establish trustworthy measurements and prevent suites from being silently omitted or accidentally mocked.
 
-- [ ] Define explicit unit, integration, browser E2E, native component, and native smoke commands. Document which commands require infrastructure.
-- [ ] Keep `pnpm test` scope explicit; add an aggregate verification command that includes root script tests and identifies separately required suites.
-- [ ] Configure version-compatible coverage providers, include executable files not imported by tests, and document exclusions for generated/type-only code.
-- [ ] Capture per-workspace baseline coverage and publish machine-readable test/coverage artifacts.
-- [ ] Introduce non-regression gates before enforcing higher target thresholds.
-- [ ] Separate API unit mock setup from real Better Auth integration setup.
-- [ ] Add reusable fixtures, fixed clocks, network stubs, disposable infrastructure setup, readiness checks, and teardown.
-- [ ] Ensure missing required infrastructure fails integration jobs rather than reporting a misleading pass through skipped tests.
+- [x] Define explicit unit, integration, browser E2E, native component, and native smoke commands. Document which commands require infrastructure.
+- [x] Keep `pnpm test` scope explicit; add an aggregate verification command that includes root script tests and identifies separately required suites.
+- [x] Configure version-compatible coverage providers, include executable files not imported by tests, and document exclusions for generated/type-only code.
+- [x] Capture per-workspace baseline coverage and publish machine-readable test/coverage artifacts.
+- [x] Introduce non-regression gates before enforcing higher target thresholds.
+- [x] Separate API unit mock setup from real Better Auth integration setup.
+- [x] Add reusable fixtures, fixed clocks, network stubs, disposable infrastructure setup, readiness checks, and teardown.
+- [x] Ensure missing required infrastructure fails integration jobs rather than reporting a misleading pass through skipped tests.
 
 **Acceptance:** CI reports which suites ran; integration tests cannot inherit global auth mocks; uncovered executable files remain visible.
 

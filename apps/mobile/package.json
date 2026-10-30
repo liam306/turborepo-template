@@ -56,9 +56,11 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "jsdom": "^26.1.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.3"
   },
@@ -71,6 +73,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "vitest run --maxWorkers=2",
+    "test:unit": "vitest run --maxWorkers=2",
+    "test:cov": "vitest run --coverage --maxWorkers=2",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "build:android:dev": "APP_ENV=development eas build -p android --profile development",

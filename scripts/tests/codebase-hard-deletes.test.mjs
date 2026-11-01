@@ -70,3 +70,17 @@ test('allows delete on non-prohibited tables and Map/Set operations', () => {
   );
   assert.equal(diagnostics.length, 0);
 });
+
+test('exempts test files from hard delete check for test cleanup', () => {
+  const code = `
+    afterAll(async () => {
+      await db.delete(user);
+    });
+  `;
+  const diagnostics = checkFileHardDeletes(
+    '/workspace/apps/api/src/users/users.service.spec.ts',
+    '/workspace',
+    code,
+  );
+  assert.equal(diagnostics.length, 0);
+});

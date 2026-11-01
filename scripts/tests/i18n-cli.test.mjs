@@ -23,11 +23,12 @@ function fixture(run) {
       'source-audit.mjs',
       'translation-usage.mjs',
       'translation-project.mjs',
-    ])
-      fs.copyFileSync(
-        path.join(root, 'scripts/lib', name),
-        path.join(dir, 'scripts/lib', name),
-      );
+    ]) {
+      const srcPath = path.join(root, 'scripts/lib', name);
+      if (fs.existsSync(srcPath)) {
+        fs.copyFileSync(srcPath, path.join(dir, 'scripts/lib', name));
+      }
+    }
     fs.copyFileSync(
       path.join(root, 'scripts/check-hardcoded-text.mjs'),
       path.join(dir, 'scripts/check-hardcoded-text.mjs'),
@@ -38,8 +39,14 @@ function fixture(run) {
     );
     fs.mkdirSync(path.join(dir, 'apps/web/messages'), { recursive: true });
     fs.mkdirSync(path.join(dir, 'apps/web/src'), { recursive: true });
-    const write = (name, value) =>
-      fs.writeFileSync(path.join(dir, name), value);
+    for (const pkg of ['core', 'database', 'types', 'utils']) {
+      fs.mkdirSync(path.join(dir, `packages/${pkg}/src`), { recursive: true });
+    }
+    const write = (name, value) => {
+      const full = path.join(dir, name);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, value);
+    };
     const execute = () =>
       spawnSync(
         process.execPath,
@@ -57,7 +64,7 @@ function fixture(run) {
         ],
         { encoding: 'utf8' },
       );
-    run({ write, execute, hardcoded });
+    run({ dir, write, execute, hardcoded });
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -127,4 +134,46 @@ test('hardcoded CLI JSON and strict exit codes', () =>
     assert.equal(error.status, 1);
     assert.equal(JSON.parse(error.stdout).errors, 1);
     assert.equal(hardcoded('--app', 'bad').status, 1);
+  }));
+
+test('hardcoded CLI fails when required source root is missing', () =>
+  fixture(({ dir, hardcoded }) => {
+    fs.rmSync(path.join(dir, 'packages/core/src'), {
+      recursive: true,
+      force: true,
+    });
+    const result = hardcoded();
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Required source directory does not exist/);
+  }));
+
+test('cross-file validation factory missing key fails even when both locales match (Seam 2)', () =>
+  fixture(({ write, execute }) => {
+    write(
+      'apps/web/messages/en.json',
+      '{"admin":{"aiConfig":{"title":"Title"}}}',
+    );
+    write(
+      'apps/web/messages/vi.json',
+      '{"admin":{"aiConfig":{"title":"Tiêu đề"}}}',
+    );
+    write(
+      'apps/web/src/components/MyDialog.tsx',
+      `import { useTranslations } from 'next-intl';
+       import { createAiModelCandidateSchema } from '@/lib/validations';
+       export function MyDialog() {
+         const t = useTranslations('admin.aiConfig');
+         createAiModelCandidateSchema(t);
+       }`,
+    );
+    write('apps/web/src/lib/validations/index.ts', `export * from './admin';`);
+    write(
+      'apps/web/src/lib/validations/admin.ts',
+      `export function createAiModelCandidateSchema(t) {
+         t('modelIdRequired');
+       }`,
+    );
+    const result = execute();
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /admin\.aiConfig\.modelIdRequired/);
   }));

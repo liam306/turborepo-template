@@ -39,6 +39,13 @@ const dirs = [
     (name) => `packages/${name}/src`,
   ),
 ];
+for (const relDir of dirs) {
+  const fullPath = path.join(root, relDir);
+  if (!fs.existsSync(fullPath)) {
+    console.error(`Error: Required source directory does not exist: ${relDir}`);
+    process.exit(1);
+  }
+}
 const issues = dirs
   .flatMap((dir) => collectSources(path.join(root, dir)))
   .sort()

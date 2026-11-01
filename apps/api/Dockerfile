@@ -55,7 +55,13 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @repo/api --prod --legacy deploy /app/pruned-api
 
 # ============================================================================
-# Stage 5: Runner - Minimal production image
+# Stage 5: Sourcemaps Exporter - Export dist artifacts for Sentry CLI
+# ============================================================================
+FROM scratch AS sourcemaps
+COPY --from=builder /app/apps/api/dist /
+
+# ============================================================================
+# Stage 6: Runner - Minimal production image
 # ============================================================================
 FROM node:22-slim AS runner
 WORKDIR /app

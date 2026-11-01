@@ -4,6 +4,11 @@ const swaggerPlugin = require('@nestjs/swagger/plugin');
 module.exports = function (options, webpack) {
   return {
     ...options,
+    output: {
+      ...options.output,
+      filename: '[name].js',
+    },
+    devtool: 'source-map',
     externals: [
       nodeExternals({
         allowlist: [/^@repo/],

@@ -6,7 +6,15 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "dependsOn": ["^build"],
       "env": ["NODE_ENV", "PORT", "SENTRY_AUTH_TOKEN"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "passThroughEnv": [
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_RELEASE",
+        "SENTRY_URL",
+        "CI"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

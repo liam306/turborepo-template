@@ -65,6 +65,7 @@ const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.resolve(__dirname, '../../'),
   transpilePackages: ['@repo/core', '@repo/types', '@repo/utils'],
+  productionBrowserSourceMaps: true,
   async headers() {
     return [
       {
@@ -107,9 +108,11 @@ const nextConfig = {
 export default withSentryConfig(withNextIntl(nextConfig), {
   // Suppress logs unless in CI
   silent: !process.env.CI,
-  // Only upload source maps if auth token is present
-  dryRun: !process.env.SENTRY_AUTH_TOKEN,
   widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
+  sourcemaps: {
+    disable: 'disable-upload',
+  },
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 });

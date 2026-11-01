@@ -92,6 +92,55 @@ jobs:
             echo "web=${{ steps.filter.outputs.web }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate Sentry Configuration for Production Delivery
+        if: env.ENV_TYPE == 'prod'
+        env:
+          ENV_API: ${{ secrets.ENV_API_PROD }}
+          ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
+          SENTRY_ORG_FALLBACK: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_WEB_FALLBACK: ${{ vars.SENTRY_PROJECT_WEB || vars.SENTRY_PROJECT }}
+          SENTRY_PROJECT_API_FALLBACK: ${{ vars.SENTRY_PROJECT_API }}
+          SENTRY_AUTH_TOKEN_WEB_FALLBACK: ${{ secrets.SENTRY_AUTH_TOKEN_WEB || secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN_API_FALLBACK: ${{ secrets.SENTRY_AUTH_TOKEN_API || secrets.SENTRY_AUTH_TOKEN }}
+          TARGET_API: ${{ steps.targets.outputs.api }}
+          TARGET_WEB: ${{ steps.targets.outputs.web }}
+        run: |
+          echo "Checking Sentry configuration for production release (graceful check)..."
+
+          check_sentry() {
+            local env_data="$1"
+            local name="$2"
+            local fallback_org="$3"
+            local fallback_proj="$4"
+            local fallback_token="$5"
+
+            local org=$(echo "$env_data" | grep -E '^SENTRY_ORG=' | cut -d= -f2- | tr -d '"'\'' ')
+            [ -z "$org" ] && org="$fallback_org"
+
+            local proj=$(echo "$env_data" | grep -E '^SENTRY_PROJECT=' | cut -d= -f2- | tr -d '"'\'' ')
+            [ -z "$proj" ] && proj="$fallback_proj"
+
+            local token=$(echo "$env_data" | grep -E '^SENTRY_AUTH_TOKEN=' | cut -d= -f2- | tr -d '"'\'' ')
+            [ -z "$token" ] && token="$fallback_token"
+
+            if [ -n "$org" ] && [ -n "$proj" ] && [ -n "$token" ]; then
+              echo "Notice: $name Sentry configured (org: $org, project: $proj). Source maps upload will be executed."
+            else
+              echo "::notice::$name Sentry configuration incomplete or omitted. Build will gracefully skip Sentry source maps upload."
+            fi
+          }
+
+          if [ "$TARGET_WEB" = "true" ]; then
+            check_sentry "$ENV_WEB" "Web" "$SENTRY_ORG_FALLBACK" "$SENTRY_PROJECT_WEB_FALLBACK" "$SENTRY_AUTH_TOKEN_WEB_FALLBACK"
+          fi
+
+          if [ "$TARGET_API" = "true" ]; then
+            check_sentry "$ENV_API" "API" "$SENTRY_ORG_FALLBACK" "$SENTRY_PROJECT_API_FALLBACK" "$SENTRY_AUTH_TOKEN_API_FALLBACK"
+          fi
+
+          echo "Notice: Mobile Sentry builds will gracefully skip Sentry plugin until configured."
+          echo "Sentry configuration check completed."
+
   build-api:
     name: Build API Docker Image
     runs-on: self-hosted
@@ -117,8 +166,53 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile
+          target: runner
           load: true
           tags: ${{ env.APP_NAME }}-api:${{ env.ENV_TYPE }}
+
+      - name: Export API Source Maps
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: sourcemaps
+          outputs: type=local,dest=./apps/api/.sourcemaps
+
+      - name: Upload API Source Maps to Sentry
+        env:
+          ENV_API: ${{ secrets.ENV_API_PROD }}
+          SENTRY_AUTH_TOKEN_FALLBACK: ${{ secrets.SENTRY_AUTH_TOKEN_API || secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG_FALLBACK: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_FALLBACK: ${{ vars.SENTRY_PROJECT_API }}
+          SENTRY_RELEASE: api@${{ github.sha }}
+        run: |
+          SENTRY_ORG=$(echo "$ENV_API" | grep -E '^SENTRY_ORG=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_ORG" ] && SENTRY_ORG="$SENTRY_ORG_FALLBACK"
+
+          SENTRY_PROJECT=$(echo "$ENV_API" | grep -E '^SENTRY_PROJECT=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_PROJECT" ] && SENTRY_PROJECT="$SENTRY_PROJECT_FALLBACK"
+
+          SENTRY_AUTH_TOKEN=$(echo "$ENV_API" | grep -E '^SENTRY_AUTH_TOKEN=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_AUTH_TOKEN" ] && SENTRY_AUTH_TOKEN="$SENTRY_AUTH_TOKEN_FALLBACK"
+
+          if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then
+            echo "Uploading API source maps to Sentry for release $SENTRY_RELEASE..."
+            docker run --rm \
+              -v "$(pwd)/apps/api/.sourcemaps:/sourcemaps" \
+              -e SENTRY_AUTH_TOKEN="$SENTRY_AUTH_TOKEN" \
+              getsentry/sentry-cli:2.58.4 \
+              sourcemaps upload /sourcemaps \
+                --org "$SENTRY_ORG" \
+                --project "$SENTRY_PROJECT" \
+                --release "$SENTRY_RELEASE"
+          else
+            echo "::notice::Skipping API source maps upload: Sentry credentials or project configuration missing in ENV_API_PROD."
+          fi
+
+      - name: Clean up API Source Maps artifact
+        if: always()
+        run: |
+          rm -rf ./apps/api/.sourcemaps
 
   deploy-api:
     name: Deploy API to VPS
@@ -134,6 +228,14 @@ jobs:
         with:
           clean: false
 
+      - name: Validate image availability when build was skipped
+        if: github.event_name == 'workflow_dispatch' && inputs.skip_build == true
+        run: |
+          if ! docker image inspect "${APP_NAME}-api:${{ env.ENV_TYPE }}" >/dev/null 2>&1; then
+            echo "Error: Image ${APP_NAME}-api:${{ env.ENV_TYPE }} not found on host. Cannot skip build."
+            exit 1
+          fi
+
       - name: Write environment file and ensure infrastructure
         env:
           ENV_API: ${{ secrets.ENV_API_PROD }}
@@ -141,6 +243,17 @@ jobs:
           echo "$ENV_API" > .env.api
           echo "ENV_TYPE=$ENV_TYPE" >> .env.api
           echo "APP_NAME=$APP_NAME" >> .env.api
+
+          # Preserve original image release when skip_build is true
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.skip_build == true }}" = "true" ]; then
+            EXISTING_RELEASE=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' "${APP_NAME}-api-${ENV_TYPE}" 2>/dev/null | grep '^SENTRY_RELEASE=' | cut -d= -f2- || true)
+            if [ -n "$EXISTING_RELEASE" ]; then
+              echo "Preserving existing API Sentry release: $EXISTING_RELEASE"
+              echo "SENTRY_RELEASE=$EXISTING_RELEASE" >> .env.api
+            fi
+          else
+            echo "SENTRY_RELEASE=api@${{ github.sha }}" >> .env.api
+          fi
 
           # Ensure required external Docker networks exist
           docker network inspect "${APP_NAME}_network" >/dev/null 2>&1 || docker network create "${APP_NAME}_network"
@@ -229,10 +342,23 @@ jobs:
         id: args
         env:
           ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
+          SENTRY_ORG_FALLBACK: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_FALLBACK: ${{ vars.SENTRY_PROJECT_WEB || vars.SENTRY_PROJECT }}
         run: |
+          SENTRY_ORG=$(echo "$ENV_WEB" | grep -E '^SENTRY_ORG=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_ORG" ] && SENTRY_ORG="$SENTRY_ORG_FALLBACK"
+
+          SENTRY_PROJECT=$(echo "$ENV_WEB" | grep -E '^SENTRY_PROJECT=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_PROJECT" ] && SENTRY_PROJECT="$SENTRY_PROJECT_FALLBACK"
+
           {
             echo "build_args<<EOF"
-            echo "$ENV_WEB" | grep -E '^[A-Za-z0-9_]+=' || true
+            # Strip auth token and duplicate sentry keys from build args so credentials are never baked into image layers
+            echo "$ENV_WEB" | grep -E '^[A-Za-z0-9_]+=' | grep -v '^SENTRY_AUTH_TOKEN=' | grep -v '^SENTRY_ORG=' | grep -v '^SENTRY_PROJECT=' || true
+            echo "SENTRY_RELEASE=web@${{ github.sha }}"
+            echo "NEXT_PUBLIC_SENTRY_RELEASE=web@${{ github.sha }}"
+            echo "SENTRY_ORG=$SENTRY_ORG"
+            echo "SENTRY_PROJECT=$SENTRY_PROJECT"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -241,9 +367,56 @@ jobs:
         with:
           context: .
           file: apps/web/Dockerfile
+          target: runner
           load: true
           tags: ${{ env.APP_NAME }}-web:${{ env.ENV_TYPE }}
           build-args: ${{ steps.args.outputs.build_args }}
+
+      - name: Export Web Source Maps
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: sourcemaps
+          outputs: type=local,dest=./apps/web/.sourcemaps
+          build-args: ${{ steps.args.outputs.build_args }}
+
+      - name: Upload Web Source Maps to Sentry
+        env:
+          ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
+          SENTRY_AUTH_TOKEN_FALLBACK: ${{ secrets.SENTRY_AUTH_TOKEN_WEB || secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG_FALLBACK: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_FALLBACK: ${{ vars.SENTRY_PROJECT_WEB || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: web@${{ github.sha }}
+        run: |
+          SENTRY_ORG=$(echo "$ENV_WEB" | grep -E '^SENTRY_ORG=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_ORG" ] && SENTRY_ORG="$SENTRY_ORG_FALLBACK"
+
+          SENTRY_PROJECT=$(echo "$ENV_WEB" | grep -E '^SENTRY_PROJECT=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_PROJECT" ] && SENTRY_PROJECT="$SENTRY_PROJECT_FALLBACK"
+
+          SENTRY_AUTH_TOKEN=$(echo "$ENV_WEB" | grep -E '^SENTRY_AUTH_TOKEN=' | cut -d= -f2- | tr -d '"'\'' ')
+          [ -z "$SENTRY_AUTH_TOKEN" ] && SENTRY_AUTH_TOKEN="$SENTRY_AUTH_TOKEN_FALLBACK"
+
+          if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then
+            echo "Uploading Web source maps to Sentry for release $SENTRY_RELEASE..."
+            docker run --rm \
+              -v "$(pwd)/apps/web/.sourcemaps:/sourcemaps" \
+              -e SENTRY_AUTH_TOKEN="$SENTRY_AUTH_TOKEN" \
+              getsentry/sentry-cli:2.58.4 \
+              sourcemaps upload /sourcemaps \
+                --org "$SENTRY_ORG" \
+                --project "$SENTRY_PROJECT" \
+                --release "$SENTRY_RELEASE" \
+                --ignore node_modules
+          else
+            echo "::notice::Skipping Web source maps upload: Sentry credentials or project configuration missing in ENV_WEB_PROD."
+          fi
+
+      - name: Clean up Web Source Maps artifact
+        if: always()
+        run: |
+          rm -rf ./apps/web/.sourcemaps
 
   deploy-web:
     name: Deploy Web to VPS
@@ -260,6 +433,14 @@ jobs:
         with:
           clean: false
 
+      - name: Validate image availability when build was skipped
+        if: github.event_name == 'workflow_dispatch' && inputs.skip_build == true
+        run: |
+          if ! docker image inspect "${APP_NAME}-web:${{ env.ENV_TYPE }}" >/dev/null 2>&1; then
+            echo "Error: Image ${APP_NAME}-web:${{ env.ENV_TYPE }} not found on host. Cannot skip build."
+            exit 1
+          fi
+
       - name: Create environment files and ensure networks
         env:
           ENV_WEB: ${{ secrets.ENV_WEB_PROD }}
@@ -267,6 +448,17 @@ jobs:
           echo "$ENV_WEB" > .env.web
           echo "ENV_TYPE=$ENV_TYPE" >> .env.web
           echo "APP_NAME=$APP_NAME" >> .env.web
+
+          # Preserve original image release when skip_build is true
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.skip_build == true }}" = "true" ]; then
+            EXISTING_RELEASE=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' "${APP_NAME}-web-${ENV_TYPE}" 2>/dev/null | grep '^SENTRY_RELEASE=' | cut -d= -f2- || true)
+            if [ -n "$EXISTING_RELEASE" ]; then
+              echo "Preserving existing Web Sentry release: $EXISTING_RELEASE"
+              echo "SENTRY_RELEASE=$EXISTING_RELEASE" >> .env.web
+            fi
+          else
+            echo "SENTRY_RELEASE=web@${{ github.sha }}" >> .env.web
+          fi
 
           # Ensure required external Docker networks exist
           docker network inspect "${APP_NAME}_network" >/dev/null 2>&1 || docker network create "${APP_NAME}_network"

@@ -27,6 +27,11 @@ const candidates = new Set([
   'header',
 ]);
 
+const COMMENT_IGNORE_RE =
+  /^\s*(?:\/\/|\/\*|\{\/\*)\s*i18n-audit-ignore(?::[ \t]*(\S.*?))?(?:\*\/|\*\/\})?\s*$/;
+const FILE_IGNORE_RE =
+  /^\s*(?:\/\/|\/\*|\{\/\*)\s*i18n-audit-file-ignore:[ \t]*\S/m;
+
 function isStyleOrTechnicalValue(text) {
   if (/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(text))
     return true;
@@ -50,9 +55,6 @@ function hasTechnicalStyleContext(propNode) {
     'background',
     'bg',
     'border',
-    'icon',
-    'color',
-    'colors',
     'style',
     'className',
     'tint',
@@ -89,22 +91,56 @@ function hasTechnicalStyleContext(propNode) {
 }
 
 export function auditHardcodedText(file, content) {
-  const firstLines = content.split('\n').slice(0, 3).join('\n');
-  if (/^\/\/\s*i18n-audit-file-ignore:[ \t]*\S/m.test(firstLines)) return [];
-
   const source = parseSource(file, content);
   const issues = [];
+  const parsed =
+    /** @type {import('typescript').SourceFile & { parseDiagnostics: readonly import('typescript').DiagnosticWithLocation[] }} */ (
+      source
+    );
+  for (const diagnostic of parsed.parseDiagnostics) {
+    const pos = source.getLineAndCharacterOfPosition(diagnostic.start || 0);
+    issues.push({
+      file,
+      line: pos.line + 1,
+      column: pos.character + 1,
+      severity: 'error',
+      rule: 'source-syntax',
+      snippet: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+    });
+  }
+
+  const firstLines = content.split('\n').slice(0, 3).join('\n');
+  if (FILE_IGNORE_RE.test(firstLines)) return issues;
+
+  const lines = content.split('\n');
   const seen = new Set();
   function report(node, rule, severity = 'error') {
     const { line, column } = position(source, node);
-    // Suppression must be on preceding line and include a reason.
-    const previous = content.split('\n')[line - 2] || '';
-    if (/(?:^|\s)i18n-audit-ignore:[ \t]*\S/.test(previous)) return;
-    if (node.parent) {
-      const parentLine = position(source, node.parent).line;
-      const parentPrevious = content.split('\n')[parentLine - 2] || '';
-      if (/(?:^|\s)i18n-audit-ignore:[ \t]*\S/.test(parentPrevious)) return;
+    // Suppression must be on preceding line and include an explicit reason.
+    const previous = lines[line - 2] || '';
+    const match = previous.match(COMMENT_IGNORE_RE);
+    if (match && match[1]?.trim()) return;
+
+    let current = node;
+    while (
+      current.parent &&
+      (ts.isConditionalExpression(current.parent) ||
+        ts.isBinaryExpression(current.parent) ||
+        ts.isParenthesizedExpression(current.parent) ||
+        ts.isAsExpression(current.parent) ||
+        ts.isJsxExpression(current.parent) ||
+        ts.isPropertyAssignment(current.parent) ||
+        ts.isJsxAttribute(current.parent))
+    ) {
+      current = current.parent;
+      const curLine = position(source, current).line;
+      if (curLine !== line) {
+        const curPrevious = lines[curLine - 2] || '';
+        const curMatch = curPrevious.match(COMMENT_IGNORE_RE);
+        if (curMatch && curMatch[1]?.trim()) return;
+      }
     }
+
     const id = `${node.getStart(source)}:${rule}`;
     if (seen.has(id)) return;
     seen.add(id);
@@ -204,24 +240,6 @@ export function auditHardcodedText(file, content) {
           return;
         }
       }
-      if (name === 'header') {
-        const text = literal(node.initializer);
-        const obj = node.parent;
-        if (
-          text &&
-          ts.isObjectLiteralExpression(obj) &&
-          obj.properties.some(
-            (p) =>
-              p !== node &&
-              ts.isPropertyAssignment(p) &&
-              propertyName(p.name) === 'key' &&
-              literal(p.initializer) === text,
-          )
-        ) {
-          ts.forEachChild(node, visit);
-          return;
-        }
-      }
       const allowStyle =
         name === 'text' &&
         !attributes.has(name) &&
@@ -277,20 +295,5 @@ export function auditHardcodedText(file, content) {
     ts.forEachChild(node, visit);
   }
   visit(source);
-  const parsed =
-    /** @type {import('typescript').SourceFile & { parseDiagnostics: readonly import('typescript').DiagnosticWithLocation[] }} */ (
-      source
-    );
-  for (const diagnostic of parsed.parseDiagnostics) {
-    const pos = source.getLineAndCharacterOfPosition(diagnostic.start || 0);
-    issues.push({
-      file,
-      line: pos.line + 1,
-      column: pos.character + 1,
-      severity: 'error',
-      rule: 'source-syntax',
-      snippet: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-    });
-  }
   return issues;
 }

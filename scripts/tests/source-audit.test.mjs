@@ -218,7 +218,7 @@ test('ambiguous text properties without technical style context retain warnings'
   assert.ok(!warnings.some((i) => i.snippet.includes('styleObj')));
 });
 
-test('translation key in message property and matching header key do not trigger warnings', () => {
+test('translation key in message property does not trigger warnings while literal headers warn', () => {
   const code = `
     const validKey = { message: 'common.errors.invalidData' };
     const invalidText = { message: 'Audio file is too large' };
@@ -227,15 +227,15 @@ test('translation key in message property and matching header key do not trigger
   `;
   const issues = auditHardcodedText('file.ts', code);
   const warnings = issues.filter((i) => i.severity === 'warning');
-  assert.equal(warnings.length, 2);
+  assert.equal(warnings.length, 3);
   assert.ok(
     warnings.some((i) => i.snippet.includes("'Audio file is too large'")),
   );
   assert.ok(warnings.some((i) => i.snippet.includes("'User Name'")));
+  assert.ok(warnings.some((i) => i.snippet.includes("'code'")));
   assert.ok(
     !warnings.some((i) => i.snippet.includes('common.errors.invalidData')),
   );
-  assert.ok(!warnings.some((i) => i.snippet.includes("'code'")));
 });
 
 test('file-level suppression requires reason and suppresses file', () => {
@@ -250,4 +250,64 @@ test('file-level suppression requires reason and suppresses file', () => {
   const issues = auditHardcodedText('seed.ts', ignoredWithoutReason);
   assert.equal(issues.length, 1);
   assert.equal(issues[0].rule, 'display-property');
+});
+
+test('R1 precision: narrow style/header exemptions, exact suppression comment, syntax error in suppressed file, no sibling bleed', () => {
+  // 1. icon and color siblings do not exempt text property
+  const siblingCode = `
+    const item = { icon: 'AlertIcon', text: 'hidden' };
+    const coloredItem = { color: 'red', text: 'block' };
+    const columns = [{ header: 'Name', key: 'Name' }];
+  `;
+  const siblingIssues = auditHardcodedText('file.ts', siblingCode);
+  const siblingWarnings = siblingIssues.filter((i) => i.severity === 'warning');
+  assert.equal(siblingWarnings.length, 3);
+  assert.ok(siblingWarnings.some((i) => i.snippet.includes("'hidden'")));
+  assert.ok(siblingWarnings.some((i) => i.snippet.includes("'block'")));
+  assert.ok(siblingWarnings.some((i) => i.snippet.includes("'Name'")));
+
+  // 2. String literal containing directive does NOT suppress next line
+  const fakeSuppressionCode = `
+    const note = ' i18n-audit-ignore: example';
+    toast.error('Visible English');
+  `;
+  const fakeIssues = auditHardcodedText('file.ts', fakeSuppressionCode);
+  assert.ok(
+    fakeIssues.some(
+      (i) =>
+        i.rule === 'notification-text' && i.snippet.includes('Visible English'),
+    ),
+  );
+
+  // 3. Syntax error in file with file-level suppression is still reported
+  const syntaxSuppressedCode = `// i18n-audit-file-ignore: Domain seed data
+    const view = <Button>;
+  `;
+  const syntaxIssues = auditHardcodedText('file.tsx', syntaxSuppressedCode);
+  assert.ok(syntaxIssues.some((i) => i.rule === 'source-syntax'));
+
+  // 4. Suppression directive without reason is rejected
+  const noReasonSuppression = `
+    // i18n-audit-ignore:
+    toast('Visible English');
+  `;
+  const noReasonIssues = auditHardcodedText('file.ts', noReasonSuppression);
+  assert.ok(
+    noReasonIssues.some(
+      (i) =>
+        i.rule === 'notification-text' && i.snippet.includes('Visible English'),
+    ),
+  );
+
+  // 5. Parent line suppression does not bleed into unrelated sibling fields
+  const siblingBleedCode = `
+    const config = {
+      // i18n-audit-ignore: title is intentional
+      title: 'Allowed Title',
+      description: 'Visible Description',
+    };
+  `;
+  const bleedIssues = auditHardcodedText('file.ts', siblingBleedCode);
+  assert.equal(bleedIssues.length, 1);
+  assert.ok(bleedIssues[0].snippet.includes('Visible Description'));
 });

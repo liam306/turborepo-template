@@ -141,6 +141,23 @@ function resolveAppConfig(appName, envName, rootEnv, rootExampleEnv) {
       POSTGRES_PORT: postgresPort,
       COOKIE_DOMAIN:
         rootEnv.COOKIE_DOMAIN ?? rootExampleEnv.COOKIE_DOMAIN ?? '',
+      SENTRY_ORG: rootEnv.SENTRY_ORG ?? rootExampleEnv.SENTRY_ORG ?? '',
+      SENTRY_PROJECT:
+        rootEnv.SENTRY_PROJECT_API ??
+        rootEnv.SENTRY_PROJECT ??
+        rootExampleEnv.SENTRY_PROJECT_API ??
+        rootExampleEnv.SENTRY_PROJECT ??
+        '',
+      SENTRY_AUTH_TOKEN:
+        rootEnv.SENTRY_AUTH_TOKEN_API ??
+        rootEnv.SENTRY_AUTH_TOKEN ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN_API ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN ??
+        '',
+      SENTRY_RELEASE:
+        rootEnv.SENTRY_RELEASE ?? rootExampleEnv.SENTRY_RELEASE ?? '',
+      SENTRY_URL:
+        rootEnv.SENTRY_URL ?? rootExampleEnv.SENTRY_URL ?? 'https://sentry.io/',
     },
     'apps/web': {
       WEB_PORT: rootEnv.WEB_PORT ?? rootExampleEnv.WEB_PORT ?? '3000',
@@ -166,6 +183,23 @@ function resolveAppConfig(appName, envName, rootEnv, rootExampleEnv) {
         rootExampleEnv.NEXT_PUBLIC_POSTHOG_HOST ??
         rootExampleEnv.POSTHOG_HOST ??
         'https://us.i.posthog.com',
+      SENTRY_ORG: rootEnv.SENTRY_ORG ?? rootExampleEnv.SENTRY_ORG ?? '',
+      SENTRY_PROJECT:
+        rootEnv.SENTRY_PROJECT_WEB ??
+        rootEnv.SENTRY_PROJECT ??
+        rootExampleEnv.SENTRY_PROJECT_WEB ??
+        rootExampleEnv.SENTRY_PROJECT ??
+        '',
+      SENTRY_AUTH_TOKEN:
+        rootEnv.SENTRY_AUTH_TOKEN_WEB ??
+        rootEnv.SENTRY_AUTH_TOKEN ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN_WEB ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN ??
+        '',
+      SENTRY_RELEASE:
+        rootEnv.SENTRY_RELEASE ?? rootExampleEnv.SENTRY_RELEASE ?? '',
+      SENTRY_URL:
+        rootEnv.SENTRY_URL ?? rootExampleEnv.SENTRY_URL ?? 'https://sentry.io/',
     },
     'apps/mobile': {
       EXPO_PUBLIC_API_URL:
@@ -192,6 +226,21 @@ function resolveAppConfig(appName, envName, rootEnv, rootExampleEnv) {
         rootExampleEnv.EXPO_PUBLIC_POSTHOG_HOST ??
         rootExampleEnv.POSTHOG_HOST ??
         'https://us.i.posthog.com',
+      SENTRY_ORG: rootEnv.SENTRY_ORG ?? rootExampleEnv.SENTRY_ORG ?? '',
+      SENTRY_PROJECT:
+        rootEnv.SENTRY_PROJECT_MOBILE ??
+        rootExampleEnv.SENTRY_PROJECT_MOBILE ??
+        '',
+      SENTRY_AUTH_TOKEN:
+        rootEnv.SENTRY_AUTH_TOKEN_MOBILE ??
+        rootEnv.SENTRY_AUTH_TOKEN ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN_MOBILE ??
+        rootExampleEnv.SENTRY_AUTH_TOKEN ??
+        '',
+      SENTRY_RELEASE:
+        rootEnv.SENTRY_RELEASE ?? rootExampleEnv.SENTRY_RELEASE ?? '',
+      SENTRY_URL:
+        rootEnv.SENTRY_URL ?? rootExampleEnv.SENTRY_URL ?? 'https://sentry.io/',
     },
   };
 

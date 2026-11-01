@@ -24,10 +24,52 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme = 'starter-dev';
   }
 
+  const sentryOrg = process.env.SENTRY_ORG;
+  const sentryProject =
+    process.env.SENTRY_PROJECT || process.env.SENTRY_PROJECT_MOBILE;
+  const sentryUrl = process.env.SENTRY_URL || 'https://sentry.io/';
+
+  let plugins = config.plugins ? [...config.plugins] : [];
+
+  if (sentryOrg && sentryProject) {
+    const sentryPluginConfig: [string, Record<string, string>] = [
+      '@sentry/react-native/expo',
+      {
+        organization: sentryOrg,
+        project: sentryProject,
+        url: sentryUrl,
+      },
+    ];
+    const hasSentryPlugin = plugins.some(
+      (p) =>
+        p === '@sentry/react-native/expo' ||
+        (Array.isArray(p) && p[0] === '@sentry/react-native/expo'),
+    );
+    if (hasSentryPlugin) {
+      plugins = plugins.map((p) =>
+        p === '@sentry/react-native/expo' ||
+        (Array.isArray(p) && p[0] === '@sentry/react-native/expo')
+          ? sentryPluginConfig
+          : p,
+      );
+    } else {
+      plugins.push(sentryPluginConfig);
+    }
+  } else {
+    plugins = plugins.filter(
+      (p) =>
+        !(
+          p === '@sentry/react-native/expo' ||
+          (Array.isArray(p) && p[0] === '@sentry/react-native/expo')
+        ),
+    );
+  }
+
   return {
     ...config,
     name,
     scheme,
+    plugins,
     ios: {
       ...config.ios,
       bundleIdentifier,

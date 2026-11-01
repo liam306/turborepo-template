@@ -36,6 +36,11 @@ JWT_SECRET=super_secret_jwt_key
 POSTGRES_PASSWORD=default_pass
 NEXT_PUBLIC_API_URL=http://localhost:4000
 EXPO_PUBLIC_API_URL=http://localhost:4000
+SENTRY_ORG=default-org
+SENTRY_PROJECT_API=default-api-project
+SENTRY_PROJECT_WEB=default-web-project
+SENTRY_PROJECT_MOBILE=default-mobile-project
+SENTRY_AUTH_TOKEN=default-sentry-token
 `;
     writeFileSync(path.join(tmpDir, '.env.example'), rootExampleContent.trim());
 
@@ -45,21 +50,25 @@ PORT=4001
 WEB_PORT=3001
 DATABASE_URL="postgresql://staging_user:staging_pass@db.example.com:5433/staging_db"
 JWT_SECRET='staging_isolated_secret'
+SENTRY_ORG=staging-org
+SENTRY_PROJECT_API=staging-api-project
+SENTRY_PROJECT_WEB=staging-web-project
+SENTRY_AUTH_TOKEN_WEB=staging-web-token
 `;
     writeFileSync(path.join(tmpDir, '.env.staging'), stagingContent.trim());
 
     // 3. Create app .env.example files defining which keys each app accepts
     writeFileSync(
       path.join(tmpDir, 'apps/api/.env.example'),
-      'PORT=\nDATABASE_URL=\nJWT_SECRET=\nPOSTGRES_USER=\nPOSTGRES_PASSWORD=\nPOSTGRES_DB=\nPOSTGRES_PORT=\n',
+      'PORT=\nDATABASE_URL=\nJWT_SECRET=\nPOSTGRES_USER=\nPOSTGRES_PASSWORD=\nPOSTGRES_DB=\nPOSTGRES_PORT=\nSENTRY_ORG=\nSENTRY_PROJECT=\nSENTRY_AUTH_TOKEN=\n',
     );
     writeFileSync(
       path.join(tmpDir, 'apps/web/.env.example'),
-      'WEB_PORT=\nNEXT_PUBLIC_API_URL=\n',
+      'WEB_PORT=\nNEXT_PUBLIC_API_URL=\nSENTRY_ORG=\nSENTRY_PROJECT=\nSENTRY_AUTH_TOKEN=\n',
     );
     writeFileSync(
       path.join(tmpDir, 'apps/mobile/.env.example'),
-      'EXPO_PUBLIC_API_URL=\n',
+      'EXPO_PUBLIC_API_URL=\nSENTRY_ORG=\nSENTRY_PROJECT=\nSENTRY_AUTH_TOKEN=\n',
     );
 
     // 4. Run sync-env with -e staging
@@ -80,6 +89,9 @@ JWT_SECRET='staging_isolated_secret'
     assert.match(apiEnv, /POSTGRES_DB=staging_db/);
     assert.match(apiEnv, /POSTGRES_PORT=5433/);
     assert.match(apiEnv, /JWT_SECRET=staging_isolated_secret/);
+    assert.match(apiEnv, /SENTRY_ORG=staging-org/);
+    assert.match(apiEnv, /SENTRY_PROJECT=staging-api-project/);
+    assert.match(apiEnv, /SENTRY_AUTH_TOKEN=default-sentry-token/);
 
     // 6. Verify apps/web/.env.staging receives mapped public URL and web port
     assert.ok(existsSync(path.join(tmpDir, 'apps/web/.env.staging')));
@@ -89,6 +101,8 @@ JWT_SECRET='staging_isolated_secret'
     );
     assert.match(webEnv, /WEB_PORT=3001/);
     assert.match(webEnv, /NEXT_PUBLIC_API_URL=/);
+    assert.match(webEnv, /SENTRY_PROJECT=staging-web-project/);
+    assert.match(webEnv, /SENTRY_AUTH_TOKEN=staging-web-token/);
 
     // 7. Verify apps/mobile/.env.staging does NOT leak database passwords or JWT secret
     assert.ok(existsSync(path.join(tmpDir, 'apps/mobile/.env.staging')));
@@ -99,6 +113,7 @@ JWT_SECRET='staging_isolated_secret'
     assert.match(mobileEnv, /EXPO_PUBLIC_API_URL=/);
     assert.doesNotMatch(mobileEnv, /staging_pass/);
     assert.doesNotMatch(mobileEnv, /JWT_SECRET/);
+    assert.match(mobileEnv, /SENTRY_PROJECT=default-mobile-project/);
 
     // 8. Run sync-env with default (no -e) to verify fallback and .env generation
     execFileSync('node', [SYNC_ENV_SCRIPT], {

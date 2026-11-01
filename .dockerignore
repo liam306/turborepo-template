@@ -31,6 +31,8 @@ pnpm-debug.log*
 # Build Outputs & Caches
 .next
 **/.next
+.sourcemaps
+**/.sourcemaps
 out
 .turbo
 **/.turbo

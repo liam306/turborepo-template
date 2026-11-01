@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
+const { withSentryConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
@@ -30,4 +31,6 @@ if (!config.resolver.sourceExts.includes('mjs'))
 if (!config.resolver.sourceExts.includes('cjs'))
   config.resolver.sourceExts.push('cjs');
 
-module.exports = withNativeWind(config, { input: './src/global.css' });
+module.exports = withSentryConfig(
+  withNativeWind(config, { input: './src/global.css' }),
+);

@@ -42,16 +42,24 @@ COPY turbo.json turbo.json
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_STORAGE_URL
 ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_SENTRY_RELEASE
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_POSTHOG_HOST
-ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
+ARG SENTRY_RELEASE
+ARG SENTRY_URL
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_STORAGE_URL=$NEXT_PUBLIC_STORAGE_URL \
     NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_SENTRY_RELEASE=$NEXT_PUBLIC_SENTRY_RELEASE \
     NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
     NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
-    SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
+    SENTRY_ORG=$SENTRY_ORG \
+    SENTRY_PROJECT=$SENTRY_PROJECT \
+    SENTRY_RELEASE=$SENTRY_RELEASE \
+    SENTRY_URL=$SENTRY_URL \
     NEXT_TELEMETRY_DISABLED=1 \
     NODE_ENV=production
 
@@ -59,8 +67,19 @@ RUN --mount=type=cache,id=next-cache,target=/app/apps/web/.next/cache \
     --mount=type=cache,id=turbo-cache,target=/app/.turbo/cache \
     pnpm turbo run build --filter=@repo/web... --cache-dir=.turbo/cache
 
+# Prepare sanitized static assets without public source maps for runner
+RUN cp -r /app/apps/web/.next/static /app/apps/web/.next/static-clean && \
+    find /app/apps/web/.next/static-clean -name "*.map" -delete
+
 # ============================================================================
-# Stage 5: Runner - Minimal Next.js standalone runner
+# Stage 5: Sourcemaps Exporter - Export static & server artifacts for Sentry CLI
+# ============================================================================
+FROM scratch AS sourcemaps
+COPY --from=builder /app/apps/web/.next/static /static
+COPY --from=builder /app/apps/web/.next/server /server
+
+# ============================================================================
+# Stage 6: Runner - Minimal Next.js standalone runner
 # ============================================================================
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -75,7 +94,7 @@ RUN apk add --no-cache curl && \
 
 # Copy Next.js standalone server, static files and public assets
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static-clean ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
 USER nextjs

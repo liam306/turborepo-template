@@ -1,12 +1,11 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 const { withNativeWind } = require('nativewind/metro');
-const { withSentryConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 
-const config = getDefaultConfig(projectRoot);
+const config = getSentryExpoConfig(projectRoot);
 
 // Watch all files within the monorepo
 config.watchFolders = [monorepoRoot];
@@ -31,6 +30,4 @@ if (!config.resolver.sourceExts.includes('mjs'))
 if (!config.resolver.sourceExts.includes('cjs'))
   config.resolver.sourceExts.push('cjs');
 
-module.exports = withSentryConfig(
-  withNativeWind(config, { input: './src/global.css' }),
-);
+module.exports = withNativeWind(config, { input: './src/global.css' });
